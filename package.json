@@ -43,5 +43,9 @@
     "tslint": "^6.1.1",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "@cpmech/basic": "^4.15.0",
+    "async-mutex": "^0.2.2"
   }
 }
