@@ -1,4 +1,4 @@
 export * from './constants';
-export * from './ReducerStore';
+export * from './CollectionStore';
 export * from './SimpleStore';
 export * from './types';

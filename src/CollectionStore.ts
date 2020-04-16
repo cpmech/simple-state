@@ -9,7 +9,7 @@ interface IStoreStatus {
   unsubscribe: () => void;
 }
 
-export class ReducerStore<ID extends string, STORE extends ISimpleStore, SUMMARY extends Iany> {
+export class CollectionStore<ID extends string, STORE extends ISimpleStore, SUMMARY extends Iany> {
   /* readonly */ error = ''; // last error
   /* readonly */ loading = false;
   /* readonly */ lastUpdatedAt: number = 1; // unix time in milliseconds

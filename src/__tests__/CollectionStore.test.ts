@@ -1,6 +1,6 @@
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
-import { ReducerStore } from '../ReducerStore';
+import { CollectionStore } from '../CollectionStore';
 
 jest.setTimeout(1000);
 
@@ -96,7 +96,7 @@ const spawnLoadAllCustomers = (forceReload = false) => {
   }
 };
 
-describe('ReducerStore', () => {
+describe('CollectionStore', () => {
   it('should call reducer and notify observers', async () => {
     const sum = newZeroSummary();
     const reducer = (
@@ -114,7 +114,7 @@ describe('ReducerStore', () => {
         return acc;
       }
     };
-    const summary = new ReducerStore(groups, customers, sum, reducer);
+    const summary = new CollectionStore(groups, customers, sum, reducer);
     spawnLoadAllCustomers();
 
     // listen
