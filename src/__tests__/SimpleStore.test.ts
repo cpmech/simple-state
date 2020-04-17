@@ -1,5 +1,6 @@
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
+import { IObserver } from '../types';
 
 jest.setTimeout(1000);
 
@@ -132,6 +133,7 @@ describe('SimpleStore', () => {
   });
 
   it('should reset state', async () => {
+    expect(called).toBe(6);
     expect(store.state).toStrictEqual({ name: 'Leela', email: 'turanga.leela@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 1 });
     store.reset();
@@ -141,13 +143,25 @@ describe('SimpleStore', () => {
     }
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
+    expect(called).toBe(8);
+  });
+
+  it('should handle an observer that turned null', async () => {
+    expect(called).toBe(8);
+    store.subscribe((null as unknown) as IObserver, 'temporary'); // <<< force null (unusual)
+    ready = false;
+    store.load(true);
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(10);
   });
 
   it('should unsubscribe observer', async () => {
     unsubscribe();
-    expect(called).toBe(8);
+    expect(called).toBe(10);
     await store.load(true);
-    expect(called).toBe(8);
+    expect(called).toBe(10);
   });
 });
 
