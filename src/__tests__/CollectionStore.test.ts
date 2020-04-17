@@ -148,6 +148,16 @@ describe('CollectionStore', () => {
       { name: 'Leela', email: 'turanga.leela@futurama.co' },
       { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
     ]);
+    expect(collection.stores.B.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+      { name: 'Leela', email: 'turanga.leela@futurama.co' },
+      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ]);
+    expect(collection.stores.C.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+      { name: 'Leela', email: 'turanga.leela@futurama.co' },
+      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ]);
     expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
     await sleep(200);
     expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
@@ -209,5 +219,120 @@ describe('CollectionStore wrong definition', () => {
         newZeroSummary,
       );
     }).toThrowError('newZeroSummary function must be given with reducer function');
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe('CollectionStore with errors', () => {
+  const onLoadWithError = async (group: Group): Promise<IState> => {
+    if (group === 'B') {
+      throw new Error('B-group failed');
+    }
+    return {
+      customers: [
+        { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+        { name: 'Leela', email: 'turanga.leela@futurama.co' },
+        { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+      ],
+    };
+  };
+
+  class CustomersWithError extends SimpleStore<Group, IState, null> {
+    constructor(group: Group) {
+      super(group, newZeroState, onLoadWithError);
+    }
+  }
+
+  const collection = new CollectionStore<Group, CustomersWithError, null>(
+    groups,
+    (group: Group) => new CustomersWithError(group),
+  );
+
+  let called = 0;
+  let ready = false;
+  let error = '';
+
+  collection.subscribe(() => {
+    called++;
+    if (collection.ready) {
+      ready = true;
+    }
+    if (collection.error) {
+      error = collection.error;
+    }
+  }, 'test');
+
+  it('should capture any error', async () => {
+    collection.spawnLoadAll();
+    while (!ready && !error) {
+      await sleep(50);
+    }
+    expect(called).toBe(2);
+    expect(error).toBe('B-group failed');
+    expect(collection.stores.A.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+      { name: 'Leela', email: 'turanga.leela@futurama.co' },
+      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ]);
+    expect(collection.stores.B.state.customers).toBeNull();
+    expect(collection.stores.C.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+      { name: 'Leela', email: 'turanga.leela@futurama.co' },
+      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ]);
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe('CollectionStore with no summary', () => {
+  const onLoadWithError = async (group: Group): Promise<IState> => {
+    return {
+      customers: [{ name: 'Bender', email: 'bender.rodriguez@futurama.co' }],
+    };
+  };
+
+  class CustomersWithError extends SimpleStore<Group, IState, null> {
+    constructor(group: Group) {
+      super(group, newZeroState, onLoadWithError);
+    }
+  }
+
+  const collection = new CollectionStore<Group, CustomersWithError, null>(
+    groups,
+    (group: Group) => new CustomersWithError(group),
+  );
+
+  let called = 0;
+  let ready = false;
+
+  collection.subscribe(() => {
+    called++;
+    if (collection.ready) {
+      ready = true;
+    }
+  }, 'test');
+
+  it('should load data but not call summary', async () => {
+    collection.spawnLoadAll();
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(2);
+    expect(collection.stores.A.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+    ]);
+    expect(collection.stores.B.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+    ]);
+    expect(collection.stores.C.state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+    ]);
+    expect(collection.summary).toBeNull();
   });
 });
