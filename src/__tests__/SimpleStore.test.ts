@@ -18,6 +18,8 @@ interface ISummary {
   accidents: number;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 describe('SimpleStore', () => {
   let counter = 0;
 
@@ -165,6 +167,8 @@ describe('SimpleStore', () => {
   });
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 describe('SimpleStore with errors', () => {
   const onLoad = async (): Promise<IState> => {
     throw new Error('STOP');
@@ -216,5 +220,54 @@ describe('SimpleStore with errors', () => {
     }
     expect(called).toBe(4);
     expect(error).toBe('FAIL');
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe('SimpleStore without summary', () => {
+  const onLoad = async (): Promise<IState> => {
+    return {
+      name: 'Bender',
+      email: 'bender.rodriguez@futurama.co',
+    };
+  };
+
+  class User extends SimpleStore<'Users', IState, null> {
+    constructor() {
+      super('Users', newZeroState, onLoad);
+    }
+  }
+
+  const store = new User();
+
+  let called = 0;
+  let ready = false;
+  let error = '';
+
+  store.subscribe(() => {
+    called++;
+    if (store.ready) {
+      ready = true;
+    }
+    if (store.error) {
+      error = store.error;
+    }
+  }, 'test');
+
+  it('should load without calling summary', async () => {
+    store.load();
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(2); // ready=false, then true
+    expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
+    expect(store.summary).toBeNull();
+  });
+
+  it('should do nothing in doSummary call', async () => {
+    expect(called).toBe(2);
+    await store.doSummary();
+    expect(called).toBe(2);
   });
 });
