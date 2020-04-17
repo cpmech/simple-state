@@ -165,6 +165,14 @@ describe('CollectionStore', () => {
     expect(counter).toBe(9); // all loaded again
   });
 
+  it('should return the store by group', async () => {
+    expect(collection.getStore('A').state.customers).toStrictEqual([
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+      { name: 'Leela', email: 'turanga.leela@futurama.co' },
+      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ]);
+  });
+
   it('should unsubscribe observer', async () => {
     unsubscribe();
     expect(called).toBe(6);
