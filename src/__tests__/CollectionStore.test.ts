@@ -71,6 +71,10 @@ class Customers extends SimpleStore<Group, IState, ISummary> {
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 describe('CollectionStore', () => {
   const reducer = (acc: ISummary, store: Customers): ISummary => {
     if (store.summary) {
@@ -157,5 +161,32 @@ describe('CollectionStore', () => {
     expect(called).toBe(4); // we're not being notified
     expect(counter).toBe(9); // all loaded again
     expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe('CollectionStore wrong definition', () => {
+  it('should throw error on incorrect input', () => {
+    const reducer = (acc: ISummary, store: Customers): ISummary => acc;
+
+    expect(() => {
+      new CollectionStore<Group, Customers, ISummary>(
+        groups,
+        (group: Group) => new Customers(group),
+        undefined,
+        reducer,
+      );
+    }).toThrowError('newZeroSummary function must be given with reducer function');
+
+    expect(() => {
+      new CollectionStore<Group, Customers, ISummary>(
+        groups,
+        (group: Group) => new Customers(group),
+        newZeroSummary,
+      );
+    }).toThrowError('newZeroSummary function must be given with reducer function');
   });
 });

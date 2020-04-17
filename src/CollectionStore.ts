@@ -62,16 +62,23 @@ export class CollectionStore<
   constructor(
     readonly groups: GROUP[],
     storeMaker: (group: GROUP) => STORE,
-    private newZeroSummary?: () => SUMMARY,
-    private reducer?: (acc: SUMMARY, curr: STORE) => SUMMARY,
+    private newZeroSummary?: () => SUMMARY, // must be given with reducer
+    private reducer?: (acc: SUMMARY, curr: STORE) => SUMMARY, // must ge given with newZeroSummary
   ) {
+    // check input
+    if ((this.reducer && !this.newZeroSummary) || (!this.reducer && this.newZeroSummary)) {
+      throw new Error('newZeroSummary function must be given with reducer function');
+    }
+
     // allocate all stores
     this.stores = groups.reduce(
       (acc, id) => ({ ...acc, [id]: storeMaker(id) }),
       {} as { [id in GROUP]: STORE },
     );
+
     // initialize summary
     this.summary = newZeroSummary ? newZeroSummary() : null;
+
     // set all observers
     this.status = groups.reduce(
       (acc, group) => ({
@@ -91,10 +98,6 @@ export class CollectionStore<
       }),
       {} as { [group in GROUP]: IStoreStatus },
     );
-    // check reducer
-    if (this.reducer && !this.newZeroSummary) {
-      throw new Error('newZeroSummary function must be given with reducer function');
-    }
   }
 
   // subscribe adds someone to be notified about state updates
