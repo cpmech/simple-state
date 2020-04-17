@@ -4,43 +4,54 @@ import { CollectionStore } from '../CollectionStore';
 
 jest.setTimeout(1000);
 
+type Group = 'A' | 'B' | 'C' | 'D' | 'E';
+
+const groups: Group[] = ['A', 'B', 'C'];
+
+interface ICustomer {
+  name: string;
+  email: string;
+}
+
+interface IState {
+  customers: ICustomer[] | null;
+}
+
 interface ISummary {
   android: number;
   ios: number;
   web: number;
 }
 
+const newZeroState = (): IState => ({
+  customers: null,
+});
+
 const newZeroSummary = (): ISummary => ({ android: 0, ios: 0, web: 0 });
 
-type Group = 'A' | 'B' | 'C';
-type Query = 'name';
-type Action = 'changeName';
-
-interface IState {
-  names: string[]; // customers' data, etc
-}
-
-const groups: Group[] = ['A', 'B', 'C'];
-
-const onLoad = async (id: Group) => {
-  console.log(`... ${id} is loading ...`);
+const onLoad = async (group: Group): Promise<IState> => {
+  console.log(`... ${group} is loading ...`);
   await sleep(50 + Math.random() * 100);
   return {
-    names: ['Bender', 'Leela', 'Fry'],
+    customers: [
+      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+      { name: 'Leela', email: 'turanga.leela@futurama.co' },
+      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ],
   };
 };
 
-const onSummary = async (id: Group, state: IState): Promise<ISummary> => {
-  console.log(`... ${id} is summarizing ...`);
+const onSummary = async (group: Group, state: IState): Promise<ISummary> => {
+  console.log(`... ${group} is summarizing ...`);
   await sleep(50 + Math.random() * 100);
-  if (id === 'A') {
+  if (group === 'A') {
     return {
       android: 1,
       ios: 2,
       web: 3,
     };
   }
-  if (id === 'B') {
+  if (group === 'B') {
     return {
       android: 3,
       ios: 2,
@@ -54,56 +65,23 @@ const onSummary = async (id: Group, state: IState): Promise<ISummary> => {
   };
 };
 
-const onAction = async (id: Group, state: IState, action: Action, payload: any) => {
-  switch (action) {
-    case 'changeName':
-      const [i, name] = payload;
-      const newCustomers = state.names.map((n, j) => (j === i ? name : n));
-      return {
-        ...state,
-        customers: newCustomers,
-      };
-    default:
-      return state;
+class Customers extends SimpleStore<Group, IState, ISummary> {
+  constructor(group: Group) {
+    super(group, newZeroState, onLoad, onSummary);
   }
-};
-
-const onQuery = (id: Group, state: IState, query: Query, payload: any) => {
-  switch (query) {
-    case 'name':
-      const [i] = payload;
-      return state.names[i];
-  }
-};
-
-const customers = groups.reduce(
-  (acc, id) => ({
-    ...acc,
-    [id]: new SimpleStore<Group, IState, ISummary, Action, Query>(
-      id,
-      onLoad,
-      onSummary,
-      onAction,
-      onQuery,
-    ),
-  }),
-  {} as { [id in Group]: SimpleStore<Group, IState, ISummary, Action, Query> },
-);
-
-const spawnLoadAllCustomers = (forceReload = false) => {
-  for (const id of groups) {
-    customers[id].load(forceReload);
-  }
-};
+  findEmail = (name: string): string => {
+    if (this.state.customers) {
+      const customer = this.state.customers.find((c) => c.name === name);
+      return customer ? customer.email : '';
+    }
+    return '';
+  };
+}
 
 describe('CollectionStore', () => {
-  it('should call reducer and notify observers', async () => {
-    const sum = newZeroSummary();
-    const reducer = (
-      acc: ISummary,
-      store: SimpleStore<Group, IState, ISummary, Action, Query>,
-    ): ISummary => {
-      console.log(`... store[${store.id}] reducer ...`);
+  it('should initialize all stores', async () => {
+    const reducer = (acc: ISummary, store: Customers): ISummary => {
+      console.log(`... store[${store.group}] reducer ...`);
       if (store.summary) {
         return {
           android: acc.android + store.summary.android,
@@ -114,29 +92,35 @@ describe('CollectionStore', () => {
         return acc;
       }
     };
-    const summary = new CollectionStore(groups, customers, sum, reducer);
-    spawnLoadAllCustomers();
 
-    // listen
+    const collection = new CollectionStore<Group, Customers, ISummary>(
+      groups,
+      (group: Group) => new Customers(group),
+      newZeroSummary,
+      reducer,
+    );
+
+    expect(collection.groups).toEqual(['A', 'B', 'C']);
+    expect(collection.error).toBe('');
+    expect(collection.loading).toBe(false);
+    expect(collection.lastUpdatedAt).toBe(1);
+    expect(collection.ready).toBe(false);
+
     let ready = false;
-    const unsubscribe = summary.subscribe(() => {
-      if (summary.error) {
-        fail('got error: ' + summary.error);
-      }
-      if (!summary.error && !summary.loading) {
+    const unsubscribe = collection.subscribe(() => {
+      if (collection.ready) {
         ready = true;
       }
-    }, 'test1');
+    }, 'test');
 
-    if (!summary.sum) {
-      fail('summary data must defined');
-    }
+    collection.load();
 
     while (!ready) {
       await sleep(50);
     }
 
-    expect(summary.sum).toEqual({ android: 4, ios: 4, web: 8 });
     unsubscribe();
+
+    expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
   });
 });

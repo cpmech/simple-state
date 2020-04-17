@@ -1,57 +1,69 @@
-import { Iany } from '@cpmech/basic';
-import { IObserver, IObservers } from './types';
+import { Iany, elog } from '@cpmech/basic';
+import { GraphQLClient } from 'graphql-request';
+import { IObserver, IObservers, IGQLClientResponse, IQueryFunction, ISimpleStore } from './types';
 import { NOTIFY_DELAY } from './constants';
 
-export class SimpleStore<
-  ID extends string,
-  STATE extends Iany,
-  SUMMARY extends Iany,
-  ACTION extends string,
-  QUERY extends string
-> {
-  /* readonly */ error = '';
-  /* readonly */ loading = false;
-  /* readonly */ lastUpdatedAt = 1; // unix time in milliseconds
+export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY extends Iany | null>
+  implements ISimpleStore {
+  // flags
+  #error = '';
+  #loading = false;
+  #lastUpdatedAt = 1; // unix time in milliseconds
 
-  /* readonly */ state?: STATE;
-  /* readonly */ summary?: SUMMARY;
+  // state
+  #state: STATE;
+  #summary: SUMMARY | null = null;
 
   // observers holds everyone who is interested in state updates
-  private observers: IObservers = {};
+  #observers: IObservers = {};
 
   // onChange notifies all observers that the state has been changed
   private onChange = () =>
-    Object.keys(this.observers).forEach((name) => this.observers[name] && this.observers[name]());
+    Object.keys(this.#observers).forEach((name) => {
+      if (this.#observers[name]) {
+        this.#observers[name]();
+      }
+    });
 
   // prepare for changes
   private begin = () => {
-    this.error = '';
-    this.loading = true;
+    this.#error = '';
+    this.#loading = true;
     this.onChange();
   };
 
   // notify observers
   private end = (withError = '') => {
-    this.error = withError;
-    this.loading = false;
+    this.#error = withError;
+    this.#loading = false;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////               ///////////////////////////////////////////////////////////////////////////////////////////////
+  ////     main      ///////////////////////////////////////////////////////////////////////////////////////////////
+  ////               ///////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   // constructor
   constructor(
-    readonly id: ID,
-    private onLoad: (id: ID) => Promise<STATE>,
-    private onSummary?: (id: ID, state: STATE) => Promise<SUMMARY>,
-    private onAction?: (id: ID, state: STATE, action: ACTION, payload: any) => Promise<STATE>,
-    private onQuery?: (id: ID, state: STATE, query: QUERY, payload: any) => any,
-  ) {}
+    readonly group: GROUP,
+    private newZeroState: () => STATE,
+    private onLoad: (group: GROUP, query: IQueryFunction) => Promise<STATE>,
+    private onSummary?: (group: GROUP, state: STATE) => Promise<SUMMARY>,
+    private api?: GraphQLClient,
+  ) {
+    this.#state = newZeroState();
+  }
 
   // subscribe adds someone to be notified about state updates
   // NOTE: returns a function to unsubscribe
   subscribe = (observer: IObserver, name: string): (() => void) => {
-    this.observers[name] = observer;
+    this.#observers[name] = observer;
     return () => {
-      delete this.observers[name];
+      delete this.#observers[name];
     };
   };
 
@@ -63,15 +75,29 @@ export class SimpleStore<
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  query = (query: QUERY, payload: any, errorMessage = ''): any => {
-    if (this.state && this.onQuery) {
-      try {
-        return this.onQuery(this.id, this.state, query, payload);
-      } catch (error) {
-        this.error = errorMessage || error;
-      }
-    }
-  };
+  get error(): string {
+    return this.#error;
+  }
+
+  get loading(): boolean {
+    return this.#loading;
+  }
+
+  get lastUpdatedAt(): number {
+    return this.#lastUpdatedAt;
+  }
+
+  get ready(): boolean {
+    return !this.#error && !this.#loading && this.#lastUpdatedAt > 1;
+  }
+
+  get state(): STATE {
+    return this.#state;
+  }
+
+  get summary(): SUMMARY | null {
+    return this.#summary;
+  }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,28 +107,30 @@ export class SimpleStore<
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // load (setter) function
   load = async (forceReload = false, callSummary = true) => {
-    if (this.lastUpdatedAt > 1 && !forceReload) {
+    if (this.#lastUpdatedAt > 1 && !forceReload) {
       return;
     }
     this.begin();
     try {
-      this.state = await this.onLoad(this.id);
-      if (this.state && this.onSummary && callSummary) {
-        this.summary = await this.onSummary(this.id, this.state);
+      this.#state = await this.onLoad(this.group, this.query);
+      if (this.onSummary && callSummary) {
+        this.#summary = await this.onSummary(this.group, this.#state);
       }
-      this.lastUpdatedAt = Date.now();
+      this.#lastUpdatedAt = Date.now();
     } catch (error) {
       return this.end(error);
     }
     this.end();
   };
 
-  action = async (action: ACTION, payload: any, errorMessage = '') => {
-    if (this.state && this.onAction) {
+  // compute summary (setter) function
+  doSummary = async (errorMessage = '') => {
+    if (this.onSummary) {
       this.begin();
       try {
-        this.state = await this.onAction(this.id, this.state, action, payload);
+        this.#summary = await this.onSummary(this.group, this.#state);
       } catch (error) {
         return this.end(errorMessage || error);
       }
@@ -110,15 +138,47 @@ export class SimpleStore<
     }
   };
 
-  doSummary = async (errorMessage = '') => {
-    if (this.state && this.onSummary) {
-      this.begin();
-      try {
-        this.summary = await this.onSummary(this.id, this.state);
-      } catch (error) {
-        return this.end(errorMessage || error);
-      }
-      this.end();
+  // clear state and reset summary to null
+  reset = () => {
+    this.begin();
+    this.#state = this.newZeroState();
+    this.#summary = null;
+    this.end();
+  };
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////                 //////////////////////////////////////////////////////////////////////////////////////////////
+  ////    protected    //////////////////////////////////////////////////////////////////////////////////////////////
+  ////                 //////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  protected query = async (que: string): Promise<IGQLClientResponse> => {
+    if (!this.api) {
+      return { err: 'GraphQL API is not available' };
     }
+    let res: any;
+    try {
+      res = await this.api.request(que);
+    } catch (err) {
+      elog(err);
+      return { err };
+    }
+    return { res };
+  };
+
+  protected mutation = async (mut: string, vars?: Iany): Promise<IGQLClientResponse> => {
+    if (!this.api) {
+      return { err: 'GraphQL API is not available' };
+    }
+    let res: any;
+    try {
+      res = await this.api.request(mut, vars);
+    } catch (err) {
+      elog(err);
+      return { err };
+    }
+    return { res };
   };
 }

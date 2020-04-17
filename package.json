@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@cpmech/basic": "^4.15.0",
-    "async-mutex": "^0.2.2"
+    "async-mutex": "^0.2.2",
+    "graphql-request": "^1.8.2"
   }
 }
