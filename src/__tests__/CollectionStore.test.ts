@@ -1,6 +1,7 @@
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 import { CollectionStore } from '../CollectionStore';
+import { IObserver } from '../types';
 
 jest.setTimeout(1500);
 
@@ -152,14 +153,26 @@ describe('CollectionStore', () => {
     expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
   });
 
+  it('should handle an observer that turned null', async () => {
+    expect(called).toBe(4);
+    collection.subscribe((null as unknown) as IObserver, 'temporary'); // <<< force null (unusual)
+    ready = false;
+    collection.spawnLoadAll(true);
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(6);
+    expect(counter).toBe(9); // all loaded again
+  });
+
   it('should unsubscribe observer', async () => {
     unsubscribe();
-    expect(called).toBe(4);
-    expect(counter).toBe(6);
+    expect(called).toBe(6);
+    expect(counter).toBe(9);
     collection.spawnLoadAll(true);
     await sleep(500);
-    expect(called).toBe(4); // we're not being notified
-    expect(counter).toBe(9); // all loaded again
+    expect(called).toBe(6); // we're not being notified
+    expect(counter).toBe(12); // all loaded again
     expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
   });
 });
