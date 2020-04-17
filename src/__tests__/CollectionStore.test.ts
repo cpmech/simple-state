@@ -43,9 +43,8 @@ const onLoad = async (group: Group): Promise<IState> => {
   };
 };
 
-const onSummary = async (group: Group, state: IState): Promise<ISummary> => {
+const onSummary = (group: Group, state: IState): ISummary => {
   if (group === 'A') {
-    await sleep(500);
     return {
       android: 1,
       ios: 2,
@@ -53,14 +52,12 @@ const onSummary = async (group: Group, state: IState): Promise<ISummary> => {
     };
   }
   if (group === 'B') {
-    await sleep(250);
     return {
       android: 3,
       ios: 2,
       web: 1,
     };
   }
-  await sleep(50);
   return {
     android: 0,
     ios: 0,

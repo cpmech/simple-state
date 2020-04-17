@@ -51,7 +51,7 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     readonly group: GROUP,
     private newZeroState: () => STATE,
     private onLoad: (group: GROUP, query: IQueryFunction) => Promise<STATE>,
-    private onSummary?: (group: GROUP, state: STATE) => Promise<SUMMARY>,
+    private onSummary?: (group: GROUP, state: STATE) => SUMMARY,
     private api?: GraphQLClient,
   ) {
     this.state = newZeroState();
@@ -83,10 +83,10 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     try {
       this.state = await this.onLoad(this.group, this.query);
       if (this.onSummary && callSummary) {
-        this.summary = await this.onSummary(this.group, this.state);
+        this.summary = this.onSummary(this.group, this.state);
       }
     } catch (error) {
-      return this.end(errorMessage || error);
+      return this.end(errorMessage || error.message);
     }
     this.end();
   };
@@ -96,24 +96,21 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     if (this.onSummary) {
       this.begin();
       try {
-        this.summary = await this.onSummary(this.group, this.state);
+        this.summary = this.onSummary(this.group, this.state);
       } catch (error) {
-        return this.end(errorMessage || error);
+        return this.end(errorMessage || error.message);
       }
       this.end();
     }
   };
 
-  /*
-  // clear state and reset summary to null
+  // reset state and summary
   reset = () => {
     this.begin();
-    this.ready = false;
     this.state = this.newZeroState();
     this.summary = null;
     this.end();
   };
-  */
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

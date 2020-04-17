@@ -1,7 +1,7 @@
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 
-jest.setTimeout(500);
+jest.setTimeout(1000);
 
 interface IState {
   name: string;
@@ -13,34 +13,40 @@ const newZeroState = (): IState => ({
   email: '',
 });
 
-let counter = 0;
-
-class User extends SimpleStore<'Users', IState, null> {
-  constructor() {
-    super(
-      'Users',
-      newZeroState,
-      async (): Promise<IState> => {
-        counter++;
-        if (counter > 1) {
-          return {
-            name: 'Leela',
-            email: 'turanga.leela@futurama.co',
-          };
-        }
-        return {
-          name: 'Bender',
-          email: 'bender.rodriguez@futurama.co',
-        };
-      },
-    );
-  }
-  get username(): string {
-    return this.state.name;
-  }
+interface ISummary {
+  accidents: number;
 }
 
 describe('SimpleStore', () => {
+  let counter = 0;
+
+  const onLoad = async (): Promise<IState> => {
+    counter++;
+    if (counter > 1) {
+      return {
+        name: 'Leela',
+        email: 'turanga.leela@futurama.co',
+      };
+    }
+    return {
+      name: 'Bender',
+      email: 'bender.rodriguez@futurama.co',
+    };
+  };
+
+  const onSummary = (group: 'Users', state: IState): ISummary => ({
+    accidents: state.name === 'Bender' ? 10 : 1,
+  });
+
+  class User extends SimpleStore<'Users', IState, ISummary> {
+    constructor() {
+      super('Users', newZeroState, onLoad, onSummary);
+    }
+    get username(): string {
+      return this.state.name;
+    }
+  }
+
   const store = new User();
 
   let called = 0;
@@ -74,6 +80,7 @@ describe('SimpleStore', () => {
     expect(store.error).toBe('');
     expect(store.ready).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
+    expect(store.summary).toStrictEqual({ accidents: 10 });
     expect(store.username).toBe('Bender');
   });
 
@@ -93,6 +100,7 @@ describe('SimpleStore', () => {
     expect(store.error).toBe('');
     expect(store.ready).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
+    expect(store.summary).toStrictEqual({ accidents: 10 });
     expect(store.username).toBe('Bender');
   });
 
@@ -108,13 +116,79 @@ describe('SimpleStore', () => {
     expect(store.error).toBe('');
     expect(store.ready).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Leela', email: 'turanga.leela@futurama.co' });
+    expect(store.summary).toStrictEqual({ accidents: 1 });
     expect(store.username).toBe('Leela');
+  });
+
+  it('should compute summary', async () => {
+    expect(called).toBe(4);
+    store.doSummary();
+    ready = false;
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(store.summary).toStrictEqual({ accidents: 1 });
+    expect(called).toBe(6); // ready=false, then true
   });
 
   it('should unsubscribe observer', async () => {
     unsubscribe();
-    expect(called).toBe(4);
+    expect(called).toBe(6);
     await store.load(true);
+    expect(called).toBe(6);
+  });
+});
+
+describe('SimpleStore with errors', () => {
+  const onLoad = async (): Promise<IState> => {
+    throw new Error('STOP');
+  };
+
+  const onSummary = (group: 'Users', state: IState): ISummary => {
+    throw new Error('FAIL');
+  };
+
+  class User extends SimpleStore<'Users', IState, ISummary> {
+    constructor() {
+      super('Users', newZeroState, onLoad, onSummary);
+    }
+  }
+
+  const store = new User();
+
+  let called = 0;
+  let ready = false;
+  let error = '';
+
+  store.subscribe(() => {
+    called++;
+    if (store.ready) {
+      ready = true;
+    }
+    if (store.error) {
+      error = store.error;
+    }
+  }, 'test');
+
+  it('should handle error onLoad', async () => {
+    expect(called).toBe(0);
+    expect(ready).toBe(false);
+    store.load();
+    while (error === '') {
+      await sleep(50);
+    }
+    expect(called).toBe(2);
+    expect(error).toBe('STOP');
+  });
+
+  it('should handle error on doSummary', async () => {
+    expect(called).toBe(2);
+    store.doSummary();
+    error = '';
+    while (error === '') {
+      await sleep(50);
+    }
     expect(called).toBe(4);
+    expect(error).toBe('FAIL');
   });
 });
