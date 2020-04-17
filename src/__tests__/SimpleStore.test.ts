@@ -131,11 +131,23 @@ describe('SimpleStore', () => {
     expect(called).toBe(6); // ready=false, then true
   });
 
+  it('should reset state', async () => {
+    expect(store.state).toStrictEqual({ name: 'Leela', email: 'turanga.leela@futurama.co' });
+    expect(store.summary).toStrictEqual({ accidents: 1 });
+    store.reset();
+    ready = false;
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(store.state).toStrictEqual({ name: '', email: '' });
+    expect(store.summary).toBeNull();
+  });
+
   it('should unsubscribe observer', async () => {
     unsubscribe();
-    expect(called).toBe(6);
+    expect(called).toBe(8);
     await store.load(true);
-    expect(called).toBe(6);
+    expect(called).toBe(8);
   });
 });
 
