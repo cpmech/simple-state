@@ -6,36 +6,36 @@ import { NOTIFY_DELAY } from './constants';
 export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY extends Iany | null>
   implements ISimpleStore {
   // flags
-  #error = '';
-  #loading = false;
-  #lastUpdatedAt = 1; // unix time in milliseconds
+  /* readyonly */ error = '';
+  /* readyonly */ loading = false;
+  /* readyonly */ lastUpdatedAt = 1; // unix time in milliseconds
 
   // state
-  #state: STATE;
-  #summary: SUMMARY | null = null;
+  /* readyonly */ state: STATE;
+  /* readyonly */ summary: SUMMARY | null = null;
 
   // observers holds everyone who is interested in state updates
-  #observers: IObservers = {};
+  private observers: IObservers = {};
 
   // onChange notifies all observers that the state has been changed
   private onChange = () =>
-    Object.keys(this.#observers).forEach((name) => {
-      if (this.#observers[name]) {
-        this.#observers[name]();
+    Object.keys(this.observers).forEach((name) => {
+      if (this.observers[name]) {
+        this.observers[name]();
       }
     });
 
   // prepare for changes
   private begin = () => {
-    this.#error = '';
-    this.#loading = true;
+    this.error = '';
+    this.loading = true;
     this.onChange();
   };
 
   // notify observers
   private end = (withError = '') => {
-    this.#error = withError;
-    this.#loading = false;
+    this.error = withError;
+    this.loading = false;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
@@ -55,15 +55,15 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     private onSummary?: (group: GROUP, state: STATE) => Promise<SUMMARY>,
     private api?: GraphQLClient,
   ) {
-    this.#state = newZeroState();
+    this.state = newZeroState();
   }
 
   // subscribe adds someone to be notified about state updates
   // NOTE: returns a function to unsubscribe
   subscribe = (observer: IObserver, name: string): (() => void) => {
-    this.#observers[name] = observer;
+    this.observers[name] = observer;
     return () => {
-      delete this.#observers[name];
+      delete this.observers[name];
     };
   };
 
@@ -75,28 +75,8 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  get error(): string {
-    return this.#error;
-  }
-
-  get loading(): boolean {
-    return this.#loading;
-  }
-
-  get lastUpdatedAt(): number {
-    return this.#lastUpdatedAt;
-  }
-
-  get ready(): boolean {
-    return !this.#error && !this.#loading && this.#lastUpdatedAt > 1;
-  }
-
-  get state(): STATE {
-    return this.#state;
-  }
-
-  get summary(): SUMMARY | null {
-    return this.#summary;
+  isReady(): boolean {
+    return !this.error && !this.loading && this.lastUpdatedAt > 1;
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,16 +89,16 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
 
   // load (setter) function
   load = async (forceReload = false, callSummary = true) => {
-    if (this.#lastUpdatedAt > 1 && !forceReload) {
+    if (this.lastUpdatedAt > 1 && !forceReload) {
       return;
     }
     this.begin();
     try {
-      this.#state = await this.onLoad(this.group, this.query);
+      this.state = await this.onLoad(this.group, this.query);
       if (this.onSummary && callSummary) {
-        this.#summary = await this.onSummary(this.group, this.#state);
+        this.summary = await this.onSummary(this.group, this.state);
       }
-      this.#lastUpdatedAt = Date.now();
+      this.lastUpdatedAt = Date.now();
     } catch (error) {
       return this.end(error);
     }
@@ -130,7 +110,7 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     if (this.onSummary) {
       this.begin();
       try {
-        this.#summary = await this.onSummary(this.group, this.#state);
+        this.summary = await this.onSummary(this.group, this.state);
       } catch (error) {
         return this.end(errorMessage || error);
       }
@@ -141,8 +121,8 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
   // clear state and reset summary to null
   reset = () => {
     this.begin();
-    this.#state = this.newZeroState();
-    this.#summary = null;
+    this.state = this.newZeroState();
+    this.summary = null;
     this.end();
   };
 

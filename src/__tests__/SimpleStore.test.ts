@@ -37,7 +37,7 @@ describe('SimpleStore', () => {
 
     expect(store.error).toBe('');
     expect(store.loading).toBe(false);
-    expect(store.ready).toBe(false);
+    expect(store.isReady()).toBe(false);
     expect(store.group).toBe('Users');
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
@@ -45,7 +45,7 @@ describe('SimpleStore', () => {
 
     let ready = false;
     const unsubscribe = store.subscribe(() => {
-      if (store.ready) {
+      if (store.isReady()) {
         ready = true;
       }
     }, 'test');
@@ -60,7 +60,7 @@ describe('SimpleStore', () => {
 
     expect(store.error).toBe('');
     expect(store.loading).toBe(false);
-    expect(store.ready).toBe(true);
+    expect(store.isReady()).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
     expect(store.username).toBe('Bender');
   });

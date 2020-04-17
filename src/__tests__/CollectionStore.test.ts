@@ -104,11 +104,11 @@ describe('CollectionStore', () => {
     expect(collection.error).toBe('');
     expect(collection.loading).toBe(false);
     expect(collection.lastUpdatedAt).toBe(1);
-    expect(collection.ready).toBe(false);
+    expect(collection.isReady()).toBe(false);
 
     let ready = false;
     const unsubscribe = collection.subscribe(() => {
-      if (collection.ready) {
+      if (collection.isReady()) {
         ready = true;
       }
     }, 'test');
