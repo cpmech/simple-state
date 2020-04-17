@@ -1,6 +1,8 @@
+import fetchMock from 'fetch-mock';
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
-import { IObserver } from '../types';
+import { IObserver, IQueryFunction } from '../types';
+import { GraphQLClient } from 'graphql-request';
 
 jest.setTimeout(1000);
 
@@ -243,15 +245,11 @@ describe('SimpleStore without summary', () => {
 
   let called = 0;
   let ready = false;
-  let error = '';
 
   store.subscribe(() => {
     called++;
     if (store.ready) {
       ready = true;
-    }
-    if (store.error) {
-      error = store.error;
     }
   }, 'test');
 
@@ -271,3 +269,77 @@ describe('SimpleStore without summary', () => {
     expect(called).toBe(2);
   });
 });
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe('SimpleStore with (mock) GraphQL API', () => {
+  const onLoad = async (_: 'Users', query: IQueryFunction): Promise<IState> => {
+    const { res, err } = await query(`query {
+      user {
+        name
+        email
+      }
+    }`);
+    if (err) {
+      throw new Error(err);
+    }
+    return res.user;
+  };
+
+  const api = new GraphQLClient('http://localhost:4444');
+
+  class User extends SimpleStore<'Users', IState, null> {
+    constructor() {
+      super('Users', newZeroState, onLoad, undefined, api);
+    }
+  }
+
+  const store = new User();
+
+  let called = 0;
+  let ready = false;
+
+  store.subscribe(() => {
+    called++;
+    if (store.ready) {
+      ready = true;
+    }
+  }, 'test');
+
+  it('should fetch (mock) data', async () => {
+    const data = {
+      user: {
+        name: 'Bender',
+        email: 'bender.rodriguez@futurama.co',
+      },
+    };
+    await mock({ body: { data } }, async () => {
+      store.load(false, true, 'Custom Error Message Goes Here');
+      while (!ready) {
+        await sleep(50);
+      }
+      expect(called).toBe(2); // ready=false, then true
+      expect(store.state).toStrictEqual({
+        name: 'Bender',
+        email: 'bender.rodriguez@futurama.co',
+      });
+    });
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+async function mock(response: any, testFn: () => Promise<void>) {
+  fetchMock.mock({
+    matcher: '*',
+    response: {
+      headers: {
+        'Content-Type': 'application/json',
+        ...response.headers,
+      },
+      body: JSON.stringify(response.body),
+    },
+  });
+  await testFn();
+  fetchMock.restore();
+}
