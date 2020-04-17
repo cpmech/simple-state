@@ -1,8 +1,10 @@
 import fetchMock from 'fetch-mock';
-import { sleep } from '@cpmech/basic';
+import { sleep, setElog } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 import { IObserver, IQueryFunction } from '../types';
 import { GraphQLClient } from 'graphql-request';
+
+setElog(false);
 
 jest.setTimeout(1000);
 
@@ -20,6 +22,8 @@ interface ISummary {
   accidents: number;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore', () => {
@@ -50,6 +54,14 @@ describe('SimpleStore', () => {
     get username(): string {
       return this.state.name;
     }
+    tryQuery = async () => {
+      const { err } = await this.query('query { version }');
+      return err;
+    };
+    tryMutation = async () => {
+      const { err } = await this.mutation('mutation { setVersion(input: "v0.1.0") }');
+      return err;
+    };
   }
 
   const store = new User();
@@ -161,6 +173,16 @@ describe('SimpleStore', () => {
     expect(called).toBe(10);
   });
 
+  it('should ignore null api in query', async () => {
+    const res = await store.tryQuery();
+    expect(res).toBe('GraphQL API is not available');
+  });
+
+  it('should ignore null api in mutation', async () => {
+    const res = await store.tryMutation();
+    expect(res).toBe('GraphQL API is not available');
+  });
+
   it('should unsubscribe observer', async () => {
     unsubscribe();
     expect(called).toBe(10);
@@ -169,6 +191,8 @@ describe('SimpleStore', () => {
   });
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore with errors', () => {
@@ -226,6 +250,8 @@ describe('SimpleStore with errors', () => {
 });
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore without summary', () => {
   const onLoad = async (): Promise<IState> => {
@@ -271,6 +297,8 @@ describe('SimpleStore without summary', () => {
 });
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore with (mock) GraphQL API', () => {
   const onLoad = async (_: 'Users', query: IQueryFunction): Promise<IState> => {
@@ -292,17 +320,38 @@ describe('SimpleStore with (mock) GraphQL API', () => {
     constructor() {
       super('Users', newZeroState, onLoad, undefined, api);
     }
+    changeName = async (name: string) => {
+      this.begin();
+      const { res, err } = await this.mutation(
+        `mutation M($input: NameInput!) {
+          setName(input: $input) {
+            name
+            email
+          }
+        }`,
+        { input: { name } },
+      );
+      if (err) {
+        return this.end(err);
+      }
+      this.state = res.setName;
+      this.end();
+    };
   }
 
   const store = new User();
 
   let called = 0;
   let ready = false;
+  let error = '';
 
   store.subscribe(() => {
     called++;
     if (store.ready) {
       ready = true;
+    }
+    if (store.error) {
+      error = store.error;
     }
   }, 'test');
 
@@ -314,7 +363,7 @@ describe('SimpleStore with (mock) GraphQL API', () => {
       },
     };
     await mock({ body: { data } }, async () => {
-      store.load(false, true, 'Custom Error Message Goes Here');
+      store.load();
       while (!ready) {
         await sleep(50);
       }
@@ -325,8 +374,58 @@ describe('SimpleStore with (mock) GraphQL API', () => {
       });
     });
   });
+
+  it('should handle error on queries', async () => {
+    await mock({ body: {} }, async () => {
+      store.load(true);
+      while (error === '') {
+        await sleep(50);
+      }
+      expect(called).toBe(4); // ready=false, then true
+      expect(error).toBe(
+        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"query {\\n      user {\\n        name\\n        email\\n      }\\n    }"}}',
+      );
+    });
+  });
+
+  it('should call mutation', async () => {
+    const data = {
+      setName: {
+        name: 'Benderio',
+        email: 'bender.rodriguez@futurama.co',
+      },
+    };
+    await mock({ body: { data } }, async () => {
+      ready = false;
+      store.changeName('Benderio');
+      while (!ready) {
+        await sleep(50);
+      }
+      expect(called).toBe(6); // ready=false, then true
+      expect(store.state).toStrictEqual({
+        name: 'Benderio',
+        email: 'bender.rodriguez@futurama.co',
+      });
+    });
+  });
+
+  it('should handle error on mutations', async () => {
+    await mock({ body: {} }, async () => {
+      error = '';
+      store.changeName('Benderio');
+      while (error === '') {
+        await sleep(50);
+      }
+      expect(called).toBe(8); // ready=false, then true
+      expect(error).toBe(
+        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"mutation M($input: NameInput!) {\\n          setName(input: $input) {\\n            name\\n            email\\n          }\\n        }","variables":{"input":{"name":"Benderio"}}}}',
+      );
+    });
+  });
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 async function mock(response: any, testFn: () => Promise<void>) {

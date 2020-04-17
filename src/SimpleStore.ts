@@ -25,14 +25,14 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     });
 
   // prepare for changes
-  private begin = () => {
+  protected begin = () => {
     this.error = '';
     this.ready = false;
     this.onChange();
   };
 
   // notify observers
-  private end = (withError = '') => {
+  protected end = (withError = '') => {
     this.error = withError;
     this.ready = !withError;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
@@ -127,9 +127,9 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     let res: any;
     try {
       res = await this.api.request(que);
-    } catch (err) {
-      elog(err);
-      return { err };
+    } catch (error) {
+      elog(error);
+      return { err: error.message };
     }
     return { res };
   };
@@ -141,9 +141,9 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
     let res: any;
     try {
       res = await this.api.request(mut, vars);
-    } catch (err) {
-      elog(err);
-      return { err };
+    } catch (error) {
+      elog(error);
+      return { err: error.message };
     }
     return { res };
   };
