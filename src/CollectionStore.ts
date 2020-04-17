@@ -4,7 +4,6 @@ import { IObserver, IObservers, ISimpleStore } from './types';
 import { NOTIFY_DELAY } from './constants';
 
 interface IStoreStatus {
-  error: string;
   ready: boolean;
   unsubscribe: () => void;
 }
@@ -13,11 +12,10 @@ export class CollectionStore<
   GROUP extends string,
   STORE extends ISimpleStore,
   SUMMARY extends Iany | null
-> implements ISimpleStore {
+> {
   // flags
   /* readyonly */ error = '';
-  /* readyonly */ loading = false;
-  /* readyonly */ lastUpdatedAt: number = 1; // unix time in milliseconds
+  /* readyonly */ ready = false;
 
   // stores and summary
   /* readyonly */ stores: { [id in GROUP]: STORE };
@@ -41,14 +39,14 @@ export class CollectionStore<
   // prepare for changes
   private begin = () => {
     this.error = '';
-    this.loading = true;
+    this.ready = false;
     this.onChange();
   };
 
   // notify observers
   private end = (withError = '') => {
     this.error = withError;
-    this.loading = false;
+    this.ready = !this.error;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
@@ -79,22 +77,24 @@ export class CollectionStore<
       (acc, group) => ({
         ...acc,
         [group]: {
-          error: '',
           ready: false,
           unsubscribe: this.stores[group].subscribe(async () => {
-            const { error, loading, lastUpdatedAt } = this.stores[group];
-            const ready = !error && !loading && lastUpdatedAt > 1;
+            const { error, ready } = this.stores[group];
+            if (error) {
+              this.end(error);
+            }
             if (ready) {
               await this.onReady(group);
-            }
-            if (error) {
-              await this.onError(group, error);
             }
           }, `CollectionStore${Date.now()}`),
         },
       }),
       {} as { [group in GROUP]: IStoreStatus },
     );
+    // check reducer
+    if (this.reducer && !this.newZeroSummary) {
+      throw new Error('newZeroSummary function must be given with reducer function');
+    }
   }
 
   // subscribe adds someone to be notified about state updates
@@ -114,10 +114,6 @@ export class CollectionStore<
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  isReady(): boolean {
-    return !this.error && !this.loading && this.lastUpdatedAt > 1;
-  }
-
   getStore(group: GROUP): STORE {
     return this.stores[group];
   }
@@ -130,21 +126,11 @@ export class CollectionStore<
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // spawn load, don't need to await
-  load = async (forceReload?: boolean, callSummary?: boolean) => {
+  spawnLoadAll = (forceReload?: boolean, callSummary?: boolean) => {
+    this.begin(); // matched by this.end within onAllReady
     for (const group of this.groups) {
       this.stores[group].load(forceReload, callSummary);
     }
-  };
-
-  clearSummaryAndStatus = () => {
-    this.begin();
-    this.summary = this.newZeroSummary ? this.newZeroSummary() : null;
-    this.groups.forEach((group) => {
-      this.status[group].error = '';
-      this.status[group].ready = false;
-    });
-    this.end();
   };
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,49 +142,29 @@ export class CollectionStore<
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   private onAllReady = () => {
-    this.begin();
-    if (this.summary && this.reducer) {
+    if (this.summary && this.reducer && this.newZeroSummary) {
+      this.summary = this.newZeroSummary();
       for (const group of this.groups) {
         this.summary = this.reducer(this.summary, this.stores[group]);
       }
     }
-    this.lastUpdatedAt = Date.now();
     this.end();
   };
 
   private onReady = async (group: GROUP) => {
     const release = await this.mutex.acquire();
-    try {
-      this.status[group].ready = true;
-      // check if everyone else is ready too
-      const allReady = this.groups.reduce((acc, g) => {
-        if (!this.status[g].ready) {
-          return false;
-        }
-        return acc;
-      }, true);
-      if (allReady) {
-        this.onAllReady();
+    this.status[group].ready = true;
+    // check if everyone else is ready too
+    const allReady = this.groups.reduce((acc, g) => {
+      if (!this.status[g].ready) {
+        return false;
       }
-    } catch (err) {
-      this.error = err.message;
-    } finally {
-      release();
+      return acc;
+    }, true);
+    if (!this.ready && allReady) {
+      // call allReady just once
+      this.onAllReady();
     }
-  };
-
-  private onError = async (group: GROUP, error: string) => {
-    const release = await this.mutex.acquire();
-    try {
-      this.status[group].error = error;
-      // notify observers too
-      this.begin();
-      this.error = error;
-      this.end();
-    } catch (err) {
-      this.error = err.message;
-    } finally {
-      release();
-    }
+    release();
   };
 }

@@ -6,8 +6,7 @@ export interface IObservers {
 
 export interface ISimpleStore {
   error: string;
-  loading: boolean;
-  lastUpdatedAt: number;
+  ready: boolean;
   subscribe: (observer: IObserver, name: string) => () => void;
   load: (forceReload?: boolean, callSummary?: boolean) => Promise<void>;
 }
