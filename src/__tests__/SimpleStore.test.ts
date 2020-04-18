@@ -29,9 +29,9 @@ interface ISummary {
 describe('SimpleStore', () => {
   let counter = 0;
 
-  const onLoad = async (): Promise<IState> => {
+  const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
     counter++;
-    if (counter > 1) {
+    if (itemId === 'leela') {
       return {
         name: 'Leela',
         email: 'turanga.leela@futurama.co',
@@ -43,13 +43,13 @@ describe('SimpleStore', () => {
     };
   };
 
-  const onSummary = (group: 'Users', state: IState): ISummary => ({
+  const onSummary = (state: IState): ISummary => ({
     accidents: state.name === 'Bender' ? 10 : 1,
   });
 
-  class User extends SimpleStore<'Users', IState, ISummary> {
+  class User extends SimpleStore<IState, ISummary> {
     constructor() {
-      super('Users', newZeroState, onLoad, onSummary);
+      super(newZeroState, onLoad, onSummary);
     }
     get username(): string {
       return this.state.name;
@@ -79,7 +79,6 @@ describe('SimpleStore', () => {
   it('should initialize the store', async () => {
     expect(store.error).toBe('');
     expect(store.ready).toBe(false);
-    expect(store.group).toBe('Users');
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
     expect(store.username).toBe('');
@@ -88,7 +87,7 @@ describe('SimpleStore', () => {
   it('should load and notify the observer', async () => {
     expect(called).toBe(0);
     expect(ready).toBe(false);
-    store.load();
+    store.load('bender');
     while (!ready) {
       await sleep(50);
     }
@@ -104,7 +103,7 @@ describe('SimpleStore', () => {
   it('should not load again', async () => {
     expect(called).toBe(2);
     expect(ready).toBe(true);
-    store.load();
+    store.load('leela', false);
     ready = false;
     let i = 0;
     while (!ready && i < 5) {
@@ -124,7 +123,7 @@ describe('SimpleStore', () => {
   it('should load again and notify the observer', async () => {
     expect(called).toBe(2);
     expect(ready).toBe(false);
-    store.load(true);
+    store.load('leela', true);
     while (!ready) {
       await sleep(50);
     }
@@ -166,11 +165,12 @@ describe('SimpleStore', () => {
     expect(called).toBe(8);
     store.subscribe((null as unknown) as IObserver, 'temporary'); // <<< force null (unusual)
     ready = false;
-    store.load(true);
+    store.load('bender', true);
     while (!ready) {
       await sleep(50);
     }
     expect(called).toBe(10);
+    expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
   });
 
   it('should ignore null api in query', async () => {
@@ -186,7 +186,7 @@ describe('SimpleStore', () => {
   it('should unsubscribe observer', async () => {
     unsubscribe();
     expect(called).toBe(10);
-    await store.load(true);
+    await store.load('leela', true);
     expect(called).toBe(10);
   });
 });
@@ -196,17 +196,17 @@ describe('SimpleStore', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore with errors', () => {
-  const onLoad = async (): Promise<IState> => {
+  const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
     throw new Error('STOP');
   };
 
-  const onSummary = (group: 'Users', state: IState): ISummary => {
+  const onSummary = (state: IState): ISummary => {
     throw new Error('FAIL');
   };
 
-  class User extends SimpleStore<'Users', IState, ISummary> {
+  class User extends SimpleStore<IState, ISummary> {
     constructor() {
-      super('Users', newZeroState, onLoad, onSummary);
+      super(newZeroState, onLoad, onSummary);
     }
   }
 
@@ -229,7 +229,7 @@ describe('SimpleStore with errors', () => {
   it('should handle error onLoad', async () => {
     expect(called).toBe(0);
     expect(ready).toBe(false);
-    store.load();
+    store.load('bender');
     while (error === '') {
       await sleep(50);
     }
@@ -254,16 +254,16 @@ describe('SimpleStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore without summary', () => {
-  const onLoad = async (): Promise<IState> => {
+  const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
     return {
       name: 'Bender',
       email: 'bender.rodriguez@futurama.co',
     };
   };
 
-  class User extends SimpleStore<'Users', IState, null> {
+  class User extends SimpleStore<IState, null> {
     constructor() {
-      super('Users', newZeroState, onLoad);
+      super(newZeroState, onLoad);
     }
   }
 
@@ -280,7 +280,7 @@ describe('SimpleStore without summary', () => {
   }, 'test');
 
   it('should load without calling summary', async () => {
-    store.load();
+    store.load('bender');
     while (!ready) {
       await sleep(50);
     }
@@ -301,9 +301,9 @@ describe('SimpleStore without summary', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore with (mock) GraphQL API', () => {
-  const onLoad = async (_: 'Users', query: IQueryFunction): Promise<IState> => {
+  const onLoad = async (query: IQueryFunction, itemId: string): Promise<IState> => {
     const { res, err } = await query(`query {
-      user {
+      user(itemId: "${itemId}") {
         name
         email
       }
@@ -316,15 +316,15 @@ describe('SimpleStore with (mock) GraphQL API', () => {
 
   const api = new GraphQLClient('http://localhost:4444');
 
-  class User extends SimpleStore<'Users', IState, null> {
+  class User extends SimpleStore<IState, null> {
     constructor() {
-      super('Users', newZeroState, onLoad, undefined, api);
+      super(newZeroState, onLoad, undefined, api);
     }
-    changeName = async (name: string) => {
+    changeName = async (itemId: string, name: string) => {
       this.begin();
       const { res, err } = await this.mutation(
         `mutation M($input: NameInput!) {
-          setName(input: $input) {
+          setName(itemId: "${itemId}", input: $input) {
             name
             email
           }
@@ -363,7 +363,7 @@ describe('SimpleStore with (mock) GraphQL API', () => {
       },
     };
     await mock({ body: { data } }, async () => {
-      store.load();
+      store.load('bender');
       while (!ready) {
         await sleep(50);
       }
@@ -377,13 +377,13 @@ describe('SimpleStore with (mock) GraphQL API', () => {
 
   it('should handle error on queries', async () => {
     await mock({ body: {} }, async () => {
-      store.load(true);
+      store.load('leela');
       while (error === '') {
         await sleep(50);
       }
       expect(called).toBe(4); // ready=false, then true
       expect(error).toBe(
-        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"query {\\n      user {\\n        name\\n        email\\n      }\\n    }"}}',
+        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"query {\\n      user(itemId: \\"leela\\") {\\n        name\\n        email\\n      }\\n    }"}}',
       );
     });
   });
@@ -397,7 +397,7 @@ describe('SimpleStore with (mock) GraphQL API', () => {
     };
     await mock({ body: { data } }, async () => {
       ready = false;
-      store.changeName('Benderio');
+      store.changeName('bender', 'Benderio');
       while (!ready) {
         await sleep(50);
       }
@@ -412,13 +412,13 @@ describe('SimpleStore with (mock) GraphQL API', () => {
   it('should handle error on mutations', async () => {
     await mock({ body: {} }, async () => {
       error = '';
-      store.changeName('Benderio');
+      store.changeName('bender', 'Benderio');
       while (error === '') {
         await sleep(50);
       }
       expect(called).toBe(8); // ready=false, then true
       expect(error).toBe(
-        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"mutation M($input: NameInput!) {\\n          setName(input: $input) {\\n            name\\n            email\\n          }\\n        }","variables":{"input":{"name":"Benderio"}}}}',
+        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"mutation M($input: NameInput!) {\\n          setName(itemId: \\"bender\\", input: $input) {\\n            name\\n            email\\n          }\\n        }","variables":{"input":{"name":"Benderio"}}}}',
       );
     });
   });

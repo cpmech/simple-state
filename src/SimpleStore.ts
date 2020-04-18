@@ -3,8 +3,7 @@ import { GraphQLClient } from 'graphql-request';
 import { IObserver, IObservers, IGQLClientResponse, IQueryFunction, ISimpleStore } from './types';
 import { NOTIFY_DELAY } from './constants';
 
-export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY extends Iany | null>
-  implements ISimpleStore {
+export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implements ISimpleStore {
   // flags
   /* readyonly */ error = '';
   /* readyonly */ ready = false; // noError and notLoading
@@ -48,11 +47,12 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
 
   // constructor
   constructor(
-    readonly group: GROUP,
     private newZeroState: () => STATE,
-    private onLoad: (group: GROUP, query: IQueryFunction) => Promise<STATE>,
-    private onSummary?: (group: GROUP, state: STATE) => SUMMARY,
+    private onLoad: (query: IQueryFunction, itemId: string) => Promise<STATE>,
+    private onSummary?: (state: STATE) => SUMMARY,
     private api?: GraphQLClient,
+    private messageErrorLoad?: string,
+    private messageErrorSummary?: string,
   ) {
     this.state = newZeroState();
   }
@@ -75,30 +75,30 @@ export class SimpleStore<GROUP extends string, STATE extends Iany, SUMMARY exten
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // load (setter) function
-  load = async (forceReload = false, callSummary = true, errorMessage = '') => {
+  load = async (itemId: string, forceReload = true, callSummary = true) => {
     if (this.ready && !forceReload) {
       return;
     }
     this.begin();
     try {
-      this.state = await this.onLoad(this.group, this.query);
+      this.state = await this.onLoad(this.query, itemId);
       if (this.onSummary && callSummary) {
-        this.summary = this.onSummary(this.group, this.state);
+        this.summary = this.onSummary(this.state);
       }
     } catch (error) {
-      return this.end(errorMessage || error.message);
+      return this.end(this.messageErrorLoad || error.message);
     }
     this.end();
   };
 
   // compute summary (setter) function
-  doSummary = async (errorMessage = '') => {
+  doSummary = async () => {
     if (this.onSummary) {
       this.begin();
       try {
-        this.summary = this.onSummary(this.group, this.state);
+        this.summary = this.onSummary(this.state);
       } catch (error) {
-        return this.end(errorMessage || error.message);
+        return this.end(this.messageErrorSummary || error.message);
       }
       this.end();
     }

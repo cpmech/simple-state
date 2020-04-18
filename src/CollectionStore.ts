@@ -61,7 +61,7 @@ export class CollectionStore<
   // subscribe all
   constructor(
     readonly groups: GROUP[],
-    storeMaker: (group: GROUP) => STORE,
+    storeMaker: () => STORE,
     private newZeroSummary?: () => SUMMARY, // must be given with reducer
     private reducer?: (acc: SUMMARY, curr: STORE) => SUMMARY, // must ge given with newZeroSummary
   ) {
@@ -72,7 +72,7 @@ export class CollectionStore<
 
     // allocate all stores
     this.stores = groups.reduce(
-      (acc, id) => ({ ...acc, [id]: storeMaker(id) }),
+      (acc, id) => ({ ...acc, [id]: storeMaker() }),
       {} as { [id in GROUP]: STORE },
     );
 
@@ -129,10 +129,11 @@ export class CollectionStore<
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // will send the group as itemId to each store load function
   spawnLoadAll = (forceReload?: boolean, callSummary?: boolean) => {
     this.begin(); // matched by this.end within onAllReady
     for (const group of this.groups) {
-      this.stores[group].load(forceReload, callSummary);
+      this.stores[group].load(group, forceReload, callSummary);
     }
   };
 

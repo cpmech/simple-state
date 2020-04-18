@@ -8,7 +8,7 @@ export interface ISimpleStore {
   error: string;
   ready: boolean;
   subscribe: (observer: IObserver, name: string) => () => void;
-  load: (forceReload?: boolean, callSummary?: boolean) => Promise<void>;
+  load: (itemId: string, forceReload?: boolean, callSummary?: boolean) => Promise<void>;
 }
 
 export interface IGQLClientResponse {

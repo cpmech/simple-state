@@ -1,7 +1,7 @@
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 import { CollectionStore } from '../CollectionStore';
-import { IObserver } from '../types';
+import { IObserver, IQueryFunction } from '../types';
 
 jest.setTimeout(1500);
 
@@ -32,27 +32,45 @@ const newZeroSummary = (): ISummary => ({ android: 0, ios: 0, web: 0 });
 
 let counter = 0;
 
-const onLoad = async (group: Group): Promise<IState> => {
+const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
   await sleep(50 + Math.random() * 100);
   counter++;
+  if (itemId === 'A') {
+    return {
+      customers: [
+        { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
+        { name: 'Leela', email: 'turanga.leela@futurama.co' },
+        { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+      ],
+    };
+  }
+  if (itemId == 'B') {
+    return {
+      customers: [
+        { name: 'Prof', email: 'professor.hubert.j.farnsworth@futurama.co' },
+        { name: 'Amy', email: 'amy.wong@futurama.co' },
+        { name: 'Hermes', email: 'hermes.conrad@futurama.co' },
+      ],
+    };
+  }
   return {
     customers: [
-      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
-      { name: 'Leela', email: 'turanga.leela@futurama.co' },
-      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+      { name: 'Zoidberg', email: 'dr.john.a.zoidberg@futurama.co' },
+      { name: 'Zapp', email: 'zapp.brannigan@futurama.co' },
+      { name: 'Kif', email: 'kif.kroker@futurama.co' },
     ],
   };
 };
 
-const onSummary = (group: Group, state: IState): ISummary => {
-  if (group === 'A') {
+const onSummary = (state: IState): ISummary => {
+  if (state.customers?.find((c) => c.name === 'Bender')) {
     return {
       android: 1,
       ios: 2,
       web: 3,
     };
   }
-  if (group === 'B') {
+  if (state.customers?.find((c) => c.name === 'Prof')) {
     return {
       android: 3,
       ios: 2,
@@ -66,9 +84,9 @@ const onSummary = (group: Group, state: IState): ISummary => {
   };
 };
 
-class Customers extends SimpleStore<Group, IState, ISummary> {
-  constructor(group: Group) {
-    super(group, newZeroState, onLoad, onSummary);
+class Customers extends SimpleStore<IState, ISummary> {
+  constructor() {
+    super(newZeroState, onLoad, onSummary);
   }
 }
 
@@ -91,7 +109,7 @@ describe('CollectionStore', () => {
 
   const collection = new CollectionStore<Group, Customers, ISummary>(
     groups,
-    (group: Group) => new Customers(group),
+    () => new Customers(),
     newZeroSummary,
     reducer,
   );
@@ -149,14 +167,14 @@ describe('CollectionStore', () => {
       { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
     ]);
     expect(collection.stores.B.state.customers).toStrictEqual([
-      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
-      { name: 'Leela', email: 'turanga.leela@futurama.co' },
-      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+      { name: 'Prof', email: 'professor.hubert.j.farnsworth@futurama.co' },
+      { name: 'Amy', email: 'amy.wong@futurama.co' },
+      { name: 'Hermes', email: 'hermes.conrad@futurama.co' },
     ]);
     expect(collection.stores.C.state.customers).toStrictEqual([
-      { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
-      { name: 'Leela', email: 'turanga.leela@futurama.co' },
-      { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+      { name: 'Zoidberg', email: 'dr.john.a.zoidberg@futurama.co' },
+      { name: 'Zapp', email: 'zapp.brannigan@futurama.co' },
+      { name: 'Kif', email: 'kif.kroker@futurama.co' },
     ]);
     expect(collection.summary).toEqual({ android: 4, ios: 4, web: 8 });
     await sleep(200);
@@ -180,6 +198,16 @@ describe('CollectionStore', () => {
       { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
       { name: 'Leela', email: 'turanga.leela@futurama.co' },
       { name: 'Fry', email: 'phillip.j.fry@futurama.co' },
+    ]);
+    expect(collection.getStore('B').state.customers).toStrictEqual([
+      { name: 'Prof', email: 'professor.hubert.j.farnsworth@futurama.co' },
+      { name: 'Amy', email: 'amy.wong@futurama.co' },
+      { name: 'Hermes', email: 'hermes.conrad@futurama.co' },
+    ]);
+    expect(collection.getStore('C').state.customers).toStrictEqual([
+      { name: 'Zoidberg', email: 'dr.john.a.zoidberg@futurama.co' },
+      { name: 'Zapp', email: 'zapp.brannigan@futurama.co' },
+      { name: 'Kif', email: 'kif.kroker@futurama.co' },
     ]);
   });
 
@@ -206,7 +234,7 @@ describe('CollectionStore wrong definition', () => {
     expect(() => {
       new CollectionStore<Group, Customers, ISummary>(
         groups,
-        (group: Group) => new Customers(group),
+        () => new Customers(),
         undefined,
         reducer,
       );
@@ -215,7 +243,7 @@ describe('CollectionStore wrong definition', () => {
     expect(() => {
       new CollectionStore<Group, Customers, ISummary>(
         groups,
-        (group: Group) => new Customers(group),
+        () => new Customers(),
         newZeroSummary,
       );
     }).toThrowError('newZeroSummary function must be given with reducer function');
@@ -227,8 +255,8 @@ describe('CollectionStore wrong definition', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('CollectionStore with errors', () => {
-  const onLoadWithError = async (group: Group): Promise<IState> => {
-    if (group === 'B') {
+  const onLoadWithError = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+    if (itemId === 'B') {
       throw new Error('B-group failed');
     }
     return {
@@ -240,15 +268,15 @@ describe('CollectionStore with errors', () => {
     };
   };
 
-  class CustomersWithError extends SimpleStore<Group, IState, null> {
-    constructor(group: Group) {
-      super(group, newZeroState, onLoadWithError);
+  class CustomersWithError extends SimpleStore<IState, null> {
+    constructor() {
+      super(newZeroState, onLoadWithError);
     }
   }
 
   const collection = new CollectionStore<Group, CustomersWithError, null>(
     groups,
-    (group: Group) => new CustomersWithError(group),
+    () => new CustomersWithError(),
   );
 
   let called = 0;
@@ -291,21 +319,21 @@ describe('CollectionStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('CollectionStore with no summary', () => {
-  const onLoadWithError = async (group: Group): Promise<IState> => {
+  const onLoadWithError = async (_: IQueryFunction, itemId: string): Promise<IState> => {
     return {
       customers: [{ name: 'Bender', email: 'bender.rodriguez@futurama.co' }],
     };
   };
 
-  class CustomersWithError extends SimpleStore<Group, IState, null> {
-    constructor(group: Group) {
-      super(group, newZeroState, onLoadWithError);
+  class CustomersWithError extends SimpleStore<IState, null> {
+    constructor() {
+      super(newZeroState, onLoadWithError);
     }
   }
 
   const collection = new CollectionStore<Group, CustomersWithError, null>(
     groups,
-    (group: Group) => new CustomersWithError(group),
+    () => new CustomersWithError(),
   );
 
   let called = 0;
