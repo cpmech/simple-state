@@ -16,7 +16,7 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   private observers: IObservers = {};
 
   // onChange notifies all observers that the state has been changed
-  private onChange = () =>
+  protected onChange = () =>
     Object.keys(this.observers).forEach((name) => {
       if (this.observers[name]) {
         this.observers[name]();
