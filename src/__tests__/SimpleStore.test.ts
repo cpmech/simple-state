@@ -422,6 +422,16 @@ describe('SimpleStore with (mock) GraphQL API', () => {
       );
     });
   });
+
+  it('should be able to clear error', async () => {
+    store.clearError();
+    while (store.error) {
+      await sleep(50);
+    }
+    expect(store.error).toBe('');
+    store.clearError();
+    expect(store.error).toBe('');
+  });
 });
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
