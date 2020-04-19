@@ -131,7 +131,13 @@ export class CollectionStore<
 
   // will send the group as itemId to each store load function
   spawnLoadAll = (forceReload?: boolean, callSummary?: boolean) => {
+    if (this.ready && !forceReload) {
+      return;
+    }
     this.begin(); // matched by this.end within onAllReady
+    for (const group of this.groups) {
+      this.status[group].ready = false; // must clear data here in case we're reloading
+    }
     for (const group of this.groups) {
       this.stores[group].load(group, forceReload, callSummary);
     }
