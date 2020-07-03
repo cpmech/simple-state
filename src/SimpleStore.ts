@@ -92,7 +92,7 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   };
 
   // compute summary (setter) function
-  doSummary = async () => {
+  doSummary = () => {
     if (this.onSummary) {
       this.begin();
       try {

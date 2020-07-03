@@ -291,7 +291,7 @@ describe('SimpleStore without summary', () => {
 
   it('should do nothing in doSummary call', async () => {
     expect(called).toBe(2);
-    await store.doSummary();
+    store.doSummary();
     expect(called).toBe(2);
   });
 });
