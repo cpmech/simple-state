@@ -2,6 +2,9 @@ import { sleep, setElog } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 import { IObserver, IQueryFunction } from '../types';
 import { GraphQLClient } from 'graphql-request';
+import { setupTestServer } from './__helpers';
+
+const serverContext = setupTestServer();
 
 setElog(false);
 
@@ -313,11 +316,9 @@ describe('SimpleStore with (mock) GraphQL API', () => {
     return res.user;
   };
 
-  const api = new GraphQLClient('http://localhost:4444');
-
   class User extends SimpleStore<IState, null> {
     constructor() {
-      super(newZeroState, onLoad, undefined, api);
+      super(newZeroState, onLoad, undefined);
     }
     changeName = async (itemId: string, name: string) => {
       this.begin();
@@ -362,8 +363,11 @@ describe('SimpleStore with (mock) GraphQL API', () => {
       },
     };
 
-    // TODO
+    // mock API
     const response = { body: { data } };
+    serverContext.res(response);
+    const api = new GraphQLClient(serverContext.url);
+    store.setApi(api);
 
     store.load('bender');
     while (!ready) {
@@ -377,8 +381,11 @@ describe('SimpleStore with (mock) GraphQL API', () => {
   });
 
   it('should handle error on queries', async () => {
-    // TODO
+    // mockAPI
     const response = { body: {} };
+    serverContext.res(response);
+    const api = new GraphQLClient(serverContext.url);
+    store.setApi(api);
 
     store.load('leela');
     while (error === '') {
@@ -398,8 +405,11 @@ describe('SimpleStore with (mock) GraphQL API', () => {
       },
     };
 
-    // TODO
+    // mockAPI
     const response = { body: { data } };
+    serverContext.res(response);
+    const api = new GraphQLClient(serverContext.url);
+    store.setApi(api);
 
     ready = false;
     store.changeName('bender', 'Benderio');
@@ -414,8 +424,11 @@ describe('SimpleStore with (mock) GraphQL API', () => {
   });
 
   it('should handle error on mutations', async () => {
-    // TODO
+    // mockAPI
     const response = { body: {} };
+    serverContext.res(response);
+    const api = new GraphQLClient(serverContext.url);
+    store.setApi(api);
 
     error = '';
     store.changeName('bender', 'Benderio');
