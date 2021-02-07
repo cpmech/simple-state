@@ -1,6 +1,5 @@
-import { Iany, elog } from '@cpmech/basic';
-import { GraphQLClient } from 'graphql-request';
-import { IObserver, IObservers, IGQLClientResponse, IQueryFunction, ISimpleStore } from './types';
+import { Iany } from '@cpmech/basic';
+import { IObserver, IObservers, ISimpleStore } from './types';
 import { NOTIFY_DELAY } from './constants';
 
 export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implements ISimpleStore {
@@ -48,9 +47,8 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   // constructor
   constructor(
     private newZeroState: () => STATE,
-    private onLoad: (query: IQueryFunction, itemId: string) => Promise<STATE>,
+    private onLoad: (itemId: string) => Promise<STATE>,
     private onSummary?: (state: STATE) => SUMMARY,
-    private api?: GraphQLClient,
     private messageErrorLoad?: string,
     private messageErrorSummary?: string,
   ) {
@@ -74,16 +72,14 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  setApi = (api: GraphQLClient) => (this.api = api);
-
   // load (setter) function
-  load = async (itemId: string, forceReload = true, callSummary = true) => {
+  load = async (itemIdOrGroup: string, forceReload = true, callSummary = true) => {
     if (this.ready && !forceReload) {
       return;
     }
     this.begin();
     try {
-      this.state = await this.onLoad(this.query, itemId);
+      this.state = await this.onLoad(itemIdOrGroup);
       if (this.onSummary && callSummary) {
         this.summary = this.onSummary(this.state);
       }
@@ -120,41 +116,5 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
       this.error = '';
       this.end();
     }
-  };
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ////                 //////////////////////////////////////////////////////////////////////////////////////////////
-  ////    protected    //////////////////////////////////////////////////////////////////////////////////////////////
-  ////                 //////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  protected query = async (que: string): Promise<IGQLClientResponse> => {
-    if (!this.api) {
-      return { err: 'GraphQL API is not available' };
-    }
-    let res: any;
-    try {
-      res = await this.api.request(que);
-    } catch (error) {
-      elog(error);
-      return { err: error.message };
-    }
-    return { res };
-  };
-
-  protected mutation = async (mut: string, vars?: Iany): Promise<IGQLClientResponse> => {
-    if (!this.api) {
-      return { err: 'GraphQL API is not available' };
-    }
-    let res: any;
-    try {
-      res = await this.api.request(mut, vars);
-    } catch (error) {
-      elog(error);
-      return { err: error.message };
-    }
-    return { res };
   };
 }

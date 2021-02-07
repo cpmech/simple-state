@@ -10,10 +10,3 @@ export interface ISimpleStore {
   subscribe: (observer: IObserver, name: string) => () => void;
   load: (itemId: string, forceReload?: boolean, callSummary?: boolean) => Promise<void>;
 }
-
-export interface IGQLClientResponse {
-  res?: any;
-  err?: string;
-}
-
-export type IQueryFunction = (que: string) => Promise<IGQLClientResponse>;
