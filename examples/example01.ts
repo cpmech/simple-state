@@ -64,13 +64,14 @@ class User extends SimpleStore<IState, ISummary> {
     } else {
       console.log('...not ready yet...');
     }
-  }, 'example');
+  }, 'example01');
 
   store.load('bender');
   await sleep(500);
 
   console.log(`called = ${called}`);
   console.log(`ready = ${ready}`);
+  console.log(`accidents = ${store.summary?.accidents}`);
 
   unsubscribe();
 })();

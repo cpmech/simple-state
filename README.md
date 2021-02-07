@@ -1,21 +1,51 @@
-# Simple reactive state management for UIs (frontends)
+# Simple reactive state management for frontends
 
 This project implements a very simple approach to manage state in user interfaces written in {Java,Type}Script.
 
 The simple approach uses the concept of **observers** to notify listeners of any change in state data.
 
-## SimpleStore
+We have designed a `SimpleStore` class and a `CollectionStore` class that wraps `SimpleStore` and allows multiple data to be loaded asynchronously.
 
-The main definition is a class named `SimpleStore` that needs to be extended before use. This can be done in six steps:
+The `SimpleStore` class needs to be extended before use and this can be done in six steps:
 
-1. define the state interface
-2. define the summary interface
-3. define a function to generate a blank state
-4. define a callback function to load state data
-5. define a callback function to make a summary out of state data
-6. extend the SimpleStore class; it may have any additional members
+1. define the state interface (e.g. `IState`)
+2. define the summary interface (to perform post-calculations based on loaded data; e.g. `ISummary`)
+3. define a function to generate a blank state (e.g. `newZeroState`)
+4. define a callback function to load state data (e.g. `onLoad`)
+5. define a callback function to make a summary out of state data (e.g. `onSummary`)
+6. extend the SimpleStore class; it may have any additional members (e.g. `User`)
 
-Then the UI (frontend) can use the store like so:
+The `CollectionStore` can be instantiated direclty, but requires another three steps:
+
+7. define the name of data groups (e.g. user groups such as ADMIN, CUSTOMER, etc.) (e.g. `Group`)
+8. define a function to collect all summary (e.g. `reducer`)
+9. defina a function to generate a blank summary (e.g. `newZeroSummary`)
+
+This is how we extend the `SimpleStore`:
+
+```typescript
+class User extends SimpleStore<IState, ISummary> {
+  constructor() {
+    super(newZeroState, onLoad, onSummary);
+  }
+  get username(): string {
+    return this.state.name;
+  }
+}
+```
+
+And this is how we instantiate a `CollectionStore`:
+
+```typescript
+const collection = new CollectionStore<Group, User, ISummary>(
+  groups,
+  () => new User(),
+  newZeroSummary,
+  reducer,
+);
+```
+
+Then the frontend can use the stores like so:
 
 ```typescript
 const store = new User();
@@ -28,59 +58,40 @@ const unsubscribe = store.subscribe(() => {
 
 store.load('some-id-goes-here');
 
+// ... do something
+
 unsubscribe();
 ```
 
-The six steps above are illustrated in `examples/example01.ts` and shown below:
+Or, using the "collection":
 
 ```typescript
-// 1. define the state interface
-interface IState {
-  name: string;
-  email: string;
-}
-
-// 2. define the summary interface
-interface ISummary {
-  accidents: number;
-}
-
-// 3. define a function to generate a blank state
-const newZeroState = (): IState => ({
-  name: '',
-  email: '',
-});
-
-// 4. define a callback function to load state data
-const onLoad = async (itemId: string): Promise<IState> => {
-  if (itemId === 'leela') {
-    return {
-      name: 'Leela',
-      email: 'turanga.leela@futurama.co',
-    };
+const unsubscribe = collection.subscribe(() => {
+  if (collection.ready) {
+    console.log(collection.stores.ADMIN.state); // we may read state data
+    console.log(collection.stores.CUSTOMER.state); // we may read state data
+  } else {
+    console.log('...not ready yet...');
   }
-  return {
-    name: 'Bender',
-    email: 'bender.rodriguez@futurama.co',
-  };
-};
+}, 'the-name-of-this-another-observer-goes-here');
 
-// 5. define a callback function to make a summary out of state data
-const onSummary = (state: IState): ISummary => ({
-  accidents: state.name === 'Bender' ? 10 : 1,
-});
+collection.spawnLoadAll(); // load all data asynchronously.
 
-// 6. extend the SimpleStore class; it may have any additional members
-class User extends SimpleStore<IState, ISummary> {
-  constructor() {
-    super(newZeroState, onLoad, onSummary);
-  }
-  get username(): string {
-    return this.state.name;
-  }
-}
+// ... do something
+
+unsubscribe();
 ```
 
-## CollectionStore
+## Examples
 
-TODO
+See `examples` directory. You may run them as follows:
+
+```bash
+yarn tsnode examples/example01.ts
+```
+
+Or:
+
+```bash
+yarn tsnode examples/example02.ts
+```

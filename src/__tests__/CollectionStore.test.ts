@@ -32,10 +32,10 @@ const newZeroSummary = (): ISummary => ({ android: 0, ios: 0, web: 0 });
 
 let counter = 0;
 
-const onLoad = async (itemId: string): Promise<IState> => {
+const onLoad = async (group: string): Promise<IState> => {
   await sleep(50 + Math.random() * 100);
   counter++;
-  if (itemId === 'A') {
+  if (group === 'A') {
     return {
       customers: [
         { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
@@ -44,7 +44,7 @@ const onLoad = async (itemId: string): Promise<IState> => {
       ],
     };
   }
-  if (itemId == 'B') {
+  if (group == 'B') {
     return {
       customers: [
         { name: 'Prof', email: 'professor.hubert.j.farnsworth@futurama.co' },

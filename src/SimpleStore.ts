@@ -73,13 +73,13 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // load (setter) function
-  load = async (itemId: string, forceReload = true, callSummary = true) => {
+  load = async (itemIdOrGroup: string, forceReload = true, callSummary = true) => {
     if (this.ready && !forceReload) {
       return;
     }
     this.begin();
     try {
-      this.state = await this.onLoad(itemId);
+      this.state = await this.onLoad(itemIdOrGroup);
       if (this.onSummary && callSummary) {
         this.summary = this.onSummary(this.state);
       }
