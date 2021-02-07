@@ -1,7 +1,7 @@
 import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 import { CollectionStore } from '../CollectionStore';
-import { IObserver, IQueryFunction } from '../types';
+import { IObserver } from '../types';
 
 jest.setTimeout(1500);
 
@@ -32,7 +32,7 @@ const newZeroSummary = (): ISummary => ({ android: 0, ios: 0, web: 0 });
 
 let counter = 0;
 
-const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+const onLoad = async (itemId: string): Promise<IState> => {
   await sleep(50 + Math.random() * 100);
   counter++;
   if (itemId === 'A') {
@@ -255,7 +255,7 @@ describe('CollectionStore wrong definition', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('CollectionStore with errors', () => {
-  const onLoadWithError = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+  const onLoadWithError = async (itemId: string): Promise<IState> => {
     if (itemId === 'B') {
       throw new Error('B-group failed');
     }
@@ -319,7 +319,7 @@ describe('CollectionStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('CollectionStore with no summary', () => {
-  const onLoadWithError = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+  const onLoadWithError = async (_: string): Promise<IState> => {
     return {
       customers: [{ name: 'Bender', email: 'bender.rodriguez@futurama.co' }],
     };

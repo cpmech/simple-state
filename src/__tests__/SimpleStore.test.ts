@@ -1,10 +1,6 @@
 import { sleep, setElog } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
-import { IObserver, IQueryFunction } from '../types';
-import { GraphQLClient } from 'graphql-request';
-import { setupTestServer } from './__helpers';
-
-const serverContext = setupTestServer();
+import { IObserver } from '../types';
 
 setElog(false);
 
@@ -31,7 +27,7 @@ interface ISummary {
 describe('SimpleStore', () => {
   let counter = 0;
 
-  const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+  const onLoad = async (itemId: string): Promise<IState> => {
     counter++;
     if (itemId === 'leela') {
       return {
@@ -56,14 +52,6 @@ describe('SimpleStore', () => {
     get username(): string {
       return this.state.name;
     }
-    tryQuery = async () => {
-      const { err } = await this.query('query { version }');
-      return err;
-    };
-    tryMutation = async () => {
-      const { err } = await this.mutation('mutation { setVersion(input: "v0.1.0") }');
-      return err;
-    };
   }
 
   const store = new User();
@@ -175,16 +163,6 @@ describe('SimpleStore', () => {
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
   });
 
-  it('should ignore null api in query', async () => {
-    const res = await store.tryQuery();
-    expect(res).toBe('GraphQL API is not available');
-  });
-
-  it('should ignore null api in mutation', async () => {
-    const res = await store.tryMutation();
-    expect(res).toBe('GraphQL API is not available');
-  });
-
   it('should unsubscribe observer', async () => {
     unsubscribe();
     expect(called).toBe(10);
@@ -198,7 +176,7 @@ describe('SimpleStore', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore with errors', () => {
-  const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+  const onLoad = async (itemId: string): Promise<IState> => {
     throw new Error('STOP');
   };
 
@@ -256,7 +234,7 @@ describe('SimpleStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore without summary', () => {
-  const onLoad = async (_: IQueryFunction, itemId: string): Promise<IState> => {
+  const onLoad = async (itemId: string): Promise<IState> => {
     return {
       name: 'Bender',
       email: 'bender.rodriguez@futurama.co',
@@ -295,159 +273,5 @@ describe('SimpleStore without summary', () => {
     expect(called).toBe(2);
     store.doSummary();
     expect(called).toBe(2);
-  });
-});
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-describe('SimpleStore with (mock) GraphQL API', () => {
-  const onLoad = async (query: IQueryFunction, itemId: string): Promise<IState> => {
-    const { res, err } = await query(`query {
-      user(itemId: "${itemId}") {
-        name
-        email
-      }
-    }`);
-    if (err) {
-      throw new Error(err);
-    }
-    return res.user;
-  };
-
-  class User extends SimpleStore<IState, null> {
-    constructor() {
-      super(newZeroState, onLoad, undefined);
-    }
-    changeName = async (itemId: string, name: string) => {
-      this.begin();
-      const { res, err } = await this.mutation(
-        `mutation M($input: NameInput!) {
-          setName(itemId: "${itemId}", input: $input) {
-            name
-            email
-          }
-        }`,
-        { input: { name } },
-      );
-      if (err) {
-        return this.end(err);
-      }
-      this.state = res.setName;
-      this.end();
-    };
-  }
-
-  const store = new User();
-
-  let called = 0;
-  let ready = false;
-  let error = '';
-
-  store.subscribe(() => {
-    called++;
-    if (store.ready) {
-      ready = true;
-    }
-    if (store.error) {
-      error = store.error;
-    }
-  }, 'test');
-
-  it('should fetch (mock) data', async () => {
-    const data = {
-      user: {
-        name: 'Bender',
-        email: 'bender.rodriguez@futurama.co',
-      },
-    };
-
-    // mock API
-    const response = { body: { data } };
-    serverContext.res(response);
-    const api = new GraphQLClient(serverContext.url);
-    store.setApi(api);
-
-    store.load('bender');
-    while (!ready) {
-      await sleep(50);
-    }
-    expect(called).toBe(2); // ready=false, then true
-    expect(store.state).toStrictEqual({
-      name: 'Bender',
-      email: 'bender.rodriguez@futurama.co',
-    });
-  });
-
-  it('should handle error on queries', async () => {
-    // mockAPI
-    const response = { body: {} };
-    serverContext.res(response);
-    const api = new GraphQLClient(serverContext.url);
-    store.setApi(api);
-
-    store.load('leela');
-    while (error === '') {
-      await sleep(50);
-    }
-    expect(called).toBe(4); // ready=false, then true
-    expect(error).toBe(
-      'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"query {\\n      user(itemId: \\"leela\\") {\\n        name\\n        email\\n      }\\n    }"}}',
-    );
-  });
-
-  it('should call mutation', async () => {
-    const data = {
-      setName: {
-        name: 'Benderio',
-        email: 'bender.rodriguez@futurama.co',
-      },
-    };
-
-    // mockAPI
-    const response = { body: { data } };
-    serverContext.res(response);
-    const api = new GraphQLClient(serverContext.url);
-    store.setApi(api);
-
-    ready = false;
-    store.changeName('bender', 'Benderio');
-    while (!ready) {
-      await sleep(50);
-    }
-    expect(called).toBe(6); // ready=false, then true
-    expect(store.state).toStrictEqual({
-      name: 'Benderio',
-      email: 'bender.rodriguez@futurama.co',
-    });
-  });
-
-  it('should handle error on mutations', async () => {
-    // mockAPI
-    const response = { body: {} };
-    serverContext.res(response);
-    const api = new GraphQLClient(serverContext.url);
-    store.setApi(api);
-
-    error = '';
-    store.changeName('bender', 'Benderio');
-    while (error === '') {
-      await sleep(50);
-    }
-    expect(called).toBe(8); // ready=false, then true
-    expect(error).toBe(
-      'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"mutation M($input: NameInput!) {\\n          setName(itemId: \\"bender\\", input: $input) {\\n            name\\n            email\\n          }\\n        }","variables":{"input":{"name":"Benderio"}}}}',
-    );
-  });
-
-  it('should be able to clear error', async () => {
-    store.clearError();
-    while (store.error) {
-      await sleep(50);
-    }
-    expect(store.error).toBe('');
-    store.clearError();
-    expect(store.error).toBe('');
   });
 });
