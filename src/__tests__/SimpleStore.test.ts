@@ -1,4 +1,3 @@
-import fetchMock from 'fetch-mock';
 import { sleep, setElog } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
 import { IObserver, IQueryFunction } from '../types';
@@ -362,30 +361,33 @@ describe('SimpleStore with (mock) GraphQL API', () => {
         email: 'bender.rodriguez@futurama.co',
       },
     };
-    await mock({ body: { data } }, async () => {
-      store.load('bender');
-      while (!ready) {
-        await sleep(50);
-      }
-      expect(called).toBe(2); // ready=false, then true
-      expect(store.state).toStrictEqual({
-        name: 'Bender',
-        email: 'bender.rodriguez@futurama.co',
-      });
+
+    // TODO
+    const response = { body: { data } };
+
+    store.load('bender');
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(2); // ready=false, then true
+    expect(store.state).toStrictEqual({
+      name: 'Bender',
+      email: 'bender.rodriguez@futurama.co',
     });
   });
 
   it('should handle error on queries', async () => {
-    await mock({ body: {} }, async () => {
-      store.load('leela');
-      while (error === '') {
-        await sleep(50);
-      }
-      expect(called).toBe(4); // ready=false, then true
-      expect(error).toBe(
-        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"query {\\n      user(itemId: \\"leela\\") {\\n        name\\n        email\\n      }\\n    }"}}',
-      );
-    });
+    // TODO
+    const response = { body: {} };
+
+    store.load('leela');
+    while (error === '') {
+      await sleep(50);
+    }
+    expect(called).toBe(4); // ready=false, then true
+    expect(error).toBe(
+      'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"query {\\n      user(itemId: \\"leela\\") {\\n        name\\n        email\\n      }\\n    }"}}',
+    );
   });
 
   it('should call mutation', async () => {
@@ -395,32 +397,35 @@ describe('SimpleStore with (mock) GraphQL API', () => {
         email: 'bender.rodriguez@futurama.co',
       },
     };
-    await mock({ body: { data } }, async () => {
-      ready = false;
-      store.changeName('bender', 'Benderio');
-      while (!ready) {
-        await sleep(50);
-      }
-      expect(called).toBe(6); // ready=false, then true
-      expect(store.state).toStrictEqual({
-        name: 'Benderio',
-        email: 'bender.rodriguez@futurama.co',
-      });
+
+    // TODO
+    const response = { body: { data } };
+
+    ready = false;
+    store.changeName('bender', 'Benderio');
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(6); // ready=false, then true
+    expect(store.state).toStrictEqual({
+      name: 'Benderio',
+      email: 'bender.rodriguez@futurama.co',
     });
   });
 
   it('should handle error on mutations', async () => {
-    await mock({ body: {} }, async () => {
-      error = '';
-      store.changeName('bender', 'Benderio');
-      while (error === '') {
-        await sleep(50);
-      }
-      expect(called).toBe(8); // ready=false, then true
-      expect(error).toBe(
-        'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"mutation M($input: NameInput!) {\\n          setName(itemId: \\"bender\\", input: $input) {\\n            name\\n            email\\n          }\\n        }","variables":{"input":{"name":"Benderio"}}}}',
-      );
-    });
+    // TODO
+    const response = { body: {} };
+
+    error = '';
+    store.changeName('bender', 'Benderio');
+    while (error === '') {
+      await sleep(50);
+    }
+    expect(called).toBe(8); // ready=false, then true
+    expect(error).toBe(
+      'GraphQL Error (Code: 200): {"response":{"status":200},"request":{"query":"mutation M($input: NameInput!) {\\n          setName(itemId: \\"bender\\", input: $input) {\\n            name\\n            email\\n          }\\n        }","variables":{"input":{"name":"Benderio"}}}}',
+    );
   });
 
   it('should be able to clear error', async () => {
@@ -433,22 +438,3 @@ describe('SimpleStore with (mock) GraphQL API', () => {
     expect(store.error).toBe('');
   });
 });
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-async function mock(response: any, testFn: () => Promise<void>) {
-  fetchMock.mock({
-    matcher: '*',
-    response: {
-      headers: {
-        'Content-Type': 'application/json',
-        ...response.headers,
-      },
-      body: JSON.stringify(response.body),
-    },
-  });
-  await testFn();
-  fetchMock.restore();
-}
