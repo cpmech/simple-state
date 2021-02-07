@@ -26,7 +26,10 @@ export default [
       typescript({
         cacheRoot,
         typescript: require('typescript'),
-        tsconfigOverride: { compilerOptions: { declaration: false } },
+        tsconfigOverride: {
+          compilerOptions: { declaration: false },
+          exclude: ['**/examples'],
+        },
       }),
       terser(),
     ],
@@ -47,7 +50,10 @@ export default [
       typescript({
         cacheRoot,
         typescript: require('typescript'),
-        tsconfigOverride: { compilerOptions: { declaration: true } },
+        tsconfigOverride: {
+          compilerOptions: { declaration: true },
+          exclude: ['**/examples'],
+        },
       }),
       terser(),
     ],
