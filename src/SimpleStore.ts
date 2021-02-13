@@ -39,7 +39,7 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   // constructor
   constructor(
     private newZeroState: () => STATE,
-    private onStart: (itemIdOrGroup: string) => Promise<STATE>,
+    private onStart?: (itemIdOrGroup: string) => Promise<STATE>,
     private onSummary?: (state: STATE) => SUMMARY,
     private messageErrorLoad?: string,
     private messageErrorSummary?: string,
@@ -58,6 +58,9 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
 
   // load (setter) function
   start = async (itemIdOrGroup: string, forceReload = true, callSummary = true) => {
+    if (!this.onStart) {
+      return;
+    }
     if (this.ready && !forceReload) {
       return;
     }
@@ -75,15 +78,16 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
 
   // compute summary (setter) function
   doSummary = () => {
-    if (this.onSummary) {
-      this.begin();
-      try {
-        this.summary = this.onSummary(this.state);
-      } catch (error) {
-        return this.end(this.messageErrorSummary || error.message);
-      }
-      this.end();
+    if (!this.onSummary) {
+      return;
     }
+    this.begin();
+    try {
+      this.summary = this.onSummary(this.state);
+    } catch (error) {
+      return this.end(this.messageErrorSummary || error.message);
+    }
+    this.end();
   };
 
   // reset state and summary

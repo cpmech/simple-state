@@ -25,6 +25,47 @@ interface ISummary {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore', () => {
+  class User extends SimpleStore<IState, null> {
+    constructor() {
+      super(newZeroState);
+    }
+
+    load = async () => {
+      this.begin();
+      this.state.name = 'My Name';
+      this.state.email = 'my.email@gmail.com';
+      this.end();
+    };
+  }
+
+  const store = new User();
+
+  let called = 0;
+  let ready = false;
+
+  store.subscribe(() => {
+    called++;
+    if (store.ready) {
+      ready = true;
+    }
+  }, 'test');
+
+  it('should start', async () => {
+    store.load();
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(called).toBe(2); // ready=false, then true
+    expect(store.state).toStrictEqual({ name: 'My Name', email: 'my.email@gmail.com' });
+    expect(store.summary).toBeNull();
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe('SimpleStore (onStart)', () => {
   let counter = 0;
 
   const onStart = async (itemId: string): Promise<IState> => {
@@ -175,7 +216,7 @@ describe('SimpleStore', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe('SimpleStore with errors', () => {
+describe('SimpleStore (onStart and errors)', () => {
   const onStart = async (itemId: string): Promise<IState> => {
     throw new Error('STOP');
   };
@@ -233,7 +274,7 @@ describe('SimpleStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe('SimpleStore without summary', () => {
+describe('SimpleStore (onStart and no summary)', () => {
   const onStart = async (itemId: string): Promise<IState> => {
     return {
       name: 'Bender',

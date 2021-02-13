@@ -87,11 +87,5 @@ unsubscribe();
 See `examples` directory. You may run them as follows:
 
 ```bash
-yarn tsnode examples/example01.ts
-```
-
-Or:
-
-```bash
-yarn tsnode examples/example02.ts
+yarn tsnode examples/example00.ts
 ```
