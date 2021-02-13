@@ -7,6 +7,7 @@ export interface IObservers {
 export interface ISimpleStore {
   error: string;
   started: boolean;
+  ready: boolean;
   subscribe: (observer: IObserver, name: string) => () => void;
   doStart: (itemId: string, forceReload?: boolean, callSummary?: boolean) => Promise<void>;
 }
