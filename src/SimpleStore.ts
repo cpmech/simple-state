@@ -6,6 +6,7 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   // flags
   /* readyonly */ error = '';
   /* readyonly */ started = false;
+  /* readyonly */ ready = false;
 
   // state
   /* readyonly */ state: STATE;
@@ -23,16 +24,30 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
     });
 
   // prepare for changes
-  protected begin = () => {
+  protected notifyBeginStart = () => {
     this.error = '';
     this.started = false;
     this.onChange();
   };
 
   // notify observers
-  protected end = (withError = '') => {
+  protected notifyEndStart = (withError = '') => {
     this.error = withError;
     this.started = !withError;
+    setTimeout(() => this.onChange(), NOTIFY_DELAY);
+  };
+
+  // prepare for changes
+  protected notifyBeginReady = () => {
+    this.error = '';
+    this.ready = false;
+    this.onChange();
+  };
+
+  // notify observers
+  protected notifyEndReady = (withError = '') => {
+    this.error = withError;
+    this.ready = !withError;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
@@ -56,7 +71,7 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
     };
   };
 
-  // load (setter) function
+  // start (setter) function
   start = async (itemIdOrGroup: string, forceReload = true, callSummary = true) => {
     if (!this.onStart) {
       return;
@@ -64,16 +79,16 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
     if (this.started && !forceReload) {
       return;
     }
-    this.begin();
+    this.notifyBeginStart();
     try {
       this.state = await this.onStart(itemIdOrGroup);
       if (this.onSummary && callSummary) {
         this.summary = this.onSummary(this.state);
       }
     } catch (error) {
-      return this.end(this.messageErrorLoad || error.message);
+      return this.notifyEndStart(this.messageErrorLoad || error.message);
     }
-    this.end();
+    this.notifyEndStart();
   };
 
   // compute summary (setter) function
@@ -81,28 +96,28 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
     if (!this.onSummary) {
       return;
     }
-    this.begin();
+    this.notifyBeginStart();
     try {
       this.summary = this.onSummary(this.state);
     } catch (error) {
-      return this.end(this.messageErrorSummary || error.message);
+      return this.notifyEndStart(this.messageErrorSummary || error.message);
     }
-    this.end();
+    this.notifyEndStart();
   };
 
   // reset state and summary
   reset = () => {
-    this.begin();
+    this.notifyBeginStart();
     this.state = this.newZeroState();
     this.summary = null;
-    this.end();
+    this.notifyEndStart();
   };
 
   clearError = () => {
     if (this.error) {
-      this.begin();
+      this.notifyBeginStart();
       this.error = '';
-      this.end();
+      this.notifyEndStart();
     }
   };
 }

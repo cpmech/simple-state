@@ -22,9 +22,9 @@ class Store extends SimpleStore<IState, null> {
   }
 
   load = async () => {
-    this.begin();
+    this.notifyBeginStart();
     this.state.data.email = 'my.email@gmail.com';
-    this.end();
+    this.notifyEndStart();
   };
 }
 

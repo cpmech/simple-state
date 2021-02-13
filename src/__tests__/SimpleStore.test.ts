@@ -31,10 +31,10 @@ describe('SimpleStore', () => {
     }
 
     load = async () => {
-      this.begin();
+      this.notifyBeginReady();
       this.state.name = 'My Name';
       this.state.email = 'my.email@gmail.com';
-      this.end();
+      this.notifyEndReady();
     };
   }
 
@@ -45,7 +45,7 @@ describe('SimpleStore', () => {
 
   store.subscribe(() => {
     called++;
-    if (store.started) {
+    if (store.ready) {
       ready = true;
     }
   }, 'test');
@@ -93,16 +93,25 @@ describe('SimpleStore (onStart)', () => {
     get username(): string {
       return this.state.name;
     }
+    someAction() {
+      this.notifyBeginReady();
+      this.state.email = 'invalid';
+      this.notifyEndReady();
+    }
   }
 
   const store = new User();
 
   let called = 0;
+  let started = false;
   let ready = false;
 
   const unsubscribe = store.subscribe(() => {
     called++;
     if (store.started) {
+      started = true;
+    }
+    if (store.ready) {
       ready = true;
     }
   }, 'test');
@@ -110,6 +119,7 @@ describe('SimpleStore (onStart)', () => {
   it('should initialize the store', async () => {
     expect(store.error).toBe('');
     expect(store.started).toBe(false);
+    expect(store.ready).toBe(false);
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
     expect(store.username).toBe('');
@@ -117,9 +127,10 @@ describe('SimpleStore (onStart)', () => {
 
   it('should load and notify the observer', async () => {
     expect(called).toBe(0);
+    expect(started).toBe(false);
     expect(ready).toBe(false);
     store.start('bender');
-    while (!ready) {
+    while (!started) {
       await sleep(50);
     }
     expect(called).toBe(2); // ready=false, then true
@@ -133,16 +144,17 @@ describe('SimpleStore (onStart)', () => {
 
   it('should not load again', async () => {
     expect(called).toBe(2);
-    expect(ready).toBe(true);
+    expect(started).toBe(true);
+    expect(ready).toBe(false);
     store.start('leela', false);
-    ready = false;
+    started = false;
     let i = 0;
-    while (!ready && i < 5) {
+    while (!started && i < 5) {
       await sleep(50);
       i++;
     }
     expect(called).toBe(2); // never called again
-    expect(ready).toBe(false);
+    expect(started).toBe(false);
     expect(counter).toBe(1);
     expect(store.error).toBe('');
     expect(store.started).toBe(true);
@@ -153,9 +165,10 @@ describe('SimpleStore (onStart)', () => {
 
   it('should load again and notify the observer', async () => {
     expect(called).toBe(2);
+    expect(started).toBe(false);
     expect(ready).toBe(false);
     store.start('leela', true);
-    while (!ready) {
+    while (!started) {
       await sleep(50);
     }
     expect(called).toBe(4); // ready=false, then true
@@ -169,9 +182,10 @@ describe('SimpleStore (onStart)', () => {
 
   it('should compute summary', async () => {
     expect(called).toBe(4);
+    expect(ready).toBe(false);
     store.doSummary();
-    ready = false;
-    while (!ready) {
+    started = false;
+    while (!started) {
       await sleep(50);
     }
     expect(store.summary).toStrictEqual({ accidents: 1 });
@@ -180,11 +194,12 @@ describe('SimpleStore (onStart)', () => {
 
   it('should reset state', async () => {
     expect(called).toBe(6);
+    expect(ready).toBe(false);
     expect(store.state).toStrictEqual({ name: 'Leela', email: 'turanga.leela@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 1 });
     store.reset();
-    ready = false;
-    while (!ready) {
+    started = false;
+    while (!started) {
       await sleep(50);
     }
     expect(store.state).toStrictEqual({ name: '', email: '' });
@@ -194,21 +209,32 @@ describe('SimpleStore (onStart)', () => {
 
   it('should handle an observer that turned null', async () => {
     expect(called).toBe(8);
+    expect(ready).toBe(false);
     store.subscribe((null as unknown) as IObserver, 'temporary'); // <<< force null (unusual)
-    ready = false;
+    started = false;
     store.start('bender', true);
-    while (!ready) {
+    while (!started) {
       await sleep(50);
     }
     expect(called).toBe(10);
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
   });
 
+  it('should notify based on the ready flag', async () => {
+    expect(called).toBe(10);
+    expect(ready).toBe(false);
+    store.someAction();
+    while (!ready) {
+      await sleep(50);
+    }
+    expect(ready).toBe(true);
+  });
+
   it('should unsubscribe observer', async () => {
     unsubscribe();
-    expect(called).toBe(10);
+    expect(called).toBe(12);
     await store.start('leela', true);
-    expect(called).toBe(10);
+    expect(called).toBe(12);
   });
 });
 
@@ -234,13 +260,13 @@ describe('SimpleStore (onStart and errors)', () => {
   const store = new User();
 
   let called = 0;
-  let ready = false;
+  let started = false;
   let error = '';
 
   store.subscribe(() => {
     called++;
     if (store.started) {
-      ready = true;
+      started = true;
     }
     if (store.error) {
       error = store.error;
@@ -249,7 +275,7 @@ describe('SimpleStore (onStart and errors)', () => {
 
   it('should handle error onStart', async () => {
     expect(called).toBe(0);
-    expect(ready).toBe(false);
+    expect(started).toBe(false);
     store.start('bender');
     while (error === '') {
       await sleep(50);
@@ -291,18 +317,18 @@ describe('SimpleStore (onStart and no summary)', () => {
   const store = new User();
 
   let called = 0;
-  let ready = false;
+  let started = false;
 
   store.subscribe(() => {
     called++;
     if (store.started) {
-      ready = true;
+      started = true;
     }
   }, 'test');
 
   it('should load without calling summary', async () => {
     store.start('bender');
-    while (!ready) {
+    while (!started) {
       await sleep(50);
     }
     expect(called).toBe(2); // ready=false, then true
