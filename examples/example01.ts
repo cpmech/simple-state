@@ -58,7 +58,7 @@ class User extends SimpleStore<IState, ISummary> {
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.started) {
       ready = true;
       console.log(store.state); // we may read state data
     } else {

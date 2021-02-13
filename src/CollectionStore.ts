@@ -78,7 +78,7 @@ export class CollectionStore<
         [group]: {
           ready: false,
           unsubscribe: this.stores[group].subscribe(async () => {
-            const { error, ready } = this.stores[group];
+            const { error, started: ready } = this.stores[group];
             if (error) {
               this.end(error);
             }

@@ -37,7 +37,7 @@ class Store extends SimpleStore<IState, null> {
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.started) {
       ready = true;
     } else {
       console.log('...not ready yet...');

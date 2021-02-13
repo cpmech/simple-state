@@ -5,7 +5,7 @@ import { NOTIFY_DELAY } from './constants';
 export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implements ISimpleStore {
   // flags
   /* readyonly */ error = '';
-  /* readyonly */ ready = false; // noError and notLoading
+  /* readyonly */ started = false;
 
   // state
   /* readyonly */ state: STATE;
@@ -25,14 +25,14 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
   // prepare for changes
   protected begin = () => {
     this.error = '';
-    this.ready = false;
+    this.started = false;
     this.onChange();
   };
 
   // notify observers
   protected end = (withError = '') => {
     this.error = withError;
-    this.ready = !withError;
+    this.started = !withError;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
@@ -61,7 +61,7 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
     if (!this.onStart) {
       return;
     }
-    if (this.ready && !forceReload) {
+    if (this.started && !forceReload) {
       return;
     }
     this.begin();

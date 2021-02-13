@@ -45,7 +45,7 @@ describe('SimpleStore', () => {
 
   store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.started) {
       ready = true;
     }
   }, 'test');
@@ -102,14 +102,14 @@ describe('SimpleStore (onStart)', () => {
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.started) {
       ready = true;
     }
   }, 'test');
 
   it('should initialize the store', async () => {
     expect(store.error).toBe('');
-    expect(store.ready).toBe(false);
+    expect(store.started).toBe(false);
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
     expect(store.username).toBe('');
@@ -125,7 +125,7 @@ describe('SimpleStore (onStart)', () => {
     expect(called).toBe(2); // ready=false, then true
     expect(counter).toBe(1);
     expect(store.error).toBe('');
-    expect(store.ready).toBe(true);
+    expect(store.started).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 10 });
     expect(store.username).toBe('Bender');
@@ -145,7 +145,7 @@ describe('SimpleStore (onStart)', () => {
     expect(ready).toBe(false);
     expect(counter).toBe(1);
     expect(store.error).toBe('');
-    expect(store.ready).toBe(true);
+    expect(store.started).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 10 });
     expect(store.username).toBe('Bender');
@@ -161,7 +161,7 @@ describe('SimpleStore (onStart)', () => {
     expect(called).toBe(4); // ready=false, then true
     expect(counter).toBe(2);
     expect(store.error).toBe('');
-    expect(store.ready).toBe(true);
+    expect(store.started).toBe(true);
     expect(store.state).toStrictEqual({ name: 'Leela', email: 'turanga.leela@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 1 });
     expect(store.username).toBe('Leela');
@@ -239,7 +239,7 @@ describe('SimpleStore (onStart and errors)', () => {
 
   store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.started) {
       ready = true;
     }
     if (store.error) {
@@ -295,7 +295,7 @@ describe('SimpleStore (onStart and no summary)', () => {
 
   store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.started) {
       ready = true;
     }
   }, 'test');
