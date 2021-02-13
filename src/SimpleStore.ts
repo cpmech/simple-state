@@ -71,8 +71,8 @@ export class SimpleStore<STATE extends Iany, SUMMARY extends Iany | null> implem
     };
   };
 
-  // start (setter) function
-  start = async (itemIdOrGroup: string, forceReload = true, callSummary = true) => {
+  // doStart (setter) function
+  doStart = async (itemIdOrGroup: string, forceReload = true, callSummary = true) => {
     if (!this.onStart) {
       return;
     }

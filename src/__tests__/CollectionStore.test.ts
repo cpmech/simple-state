@@ -115,19 +115,19 @@ describe('CollectionStore', () => {
   );
 
   let called = 0;
-  let ready = false;
+  let started = false;
 
   const unsubscribe = collection.subscribe(() => {
     called++;
-    if (collection.ready) {
-      ready = true;
+    if (collection.started) {
+      started = true;
     }
   }, 'test');
 
   it('should initialize all stores', async () => {
     expect(collection.groups).toEqual(['A', 'B', 'C']);
     expect(collection.error).toBe('');
-    expect(collection.ready).toBe(false);
+    expect(collection.started).toBe(false);
     expect(collection.stores.A.state.customers).toBeNull();
     expect(collection.stores.B.state.customers).toBeNull();
     expect(collection.stores.C.state.customers).toBeNull();
@@ -135,13 +135,13 @@ describe('CollectionStore', () => {
 
   it('should load and notify the observer', async () => {
     expect(counter).toBe(0);
-    collection.spawnLoadAll();
-    while (!ready) {
+    collection.spawnStartAll();
+    while (!started) {
       await sleep(50);
     }
-    expect(called).toBe(2); // ready=false, then true
+    expect(called).toBe(2); // started=false, then true
     expect(counter).toBe(3);
-    expect(collection.ready).toBe(true);
+    expect(collection.started).toBe(true);
     expect(collection.stores.A.state.customers).toStrictEqual([
       { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
       { name: 'Leela', email: 'turanga.leela@futurama.co' },
@@ -153,14 +153,14 @@ describe('CollectionStore', () => {
   });
 
   it('should load again and notify the observer', async () => {
-    ready = false;
-    collection.spawnLoadAll(true);
-    while (!ready) {
+    started = false;
+    collection.spawnStartAll(true);
+    while (!started) {
       await sleep(50);
     }
-    expect(called).toBe(4); // ready=false, then true
+    expect(called).toBe(4); // started=false, then true
     expect(counter).toBe(6);
-    expect(collection.ready).toBe(true);
+    expect(collection.started).toBe(true);
     expect(collection.stores.A.state.customers).toStrictEqual([
       { name: 'Bender', email: 'bender.rodriguez@futurama.co' },
       { name: 'Leela', email: 'turanga.leela@futurama.co' },
@@ -184,9 +184,9 @@ describe('CollectionStore', () => {
   it('should handle an observer that turned null', async () => {
     expect(called).toBe(4);
     collection.subscribe((null as unknown) as IObserver, 'temporary'); // <<< force null (unusual)
-    ready = false;
-    collection.spawnLoadAll(true);
-    while (!ready) {
+    started = false;
+    collection.spawnStartAll(true);
+    while (!started) {
       await sleep(50);
     }
     expect(called).toBe(6);
@@ -215,7 +215,7 @@ describe('CollectionStore', () => {
     unsubscribe();
     expect(called).toBe(6);
     expect(counter).toBe(9);
-    collection.spawnLoadAll(true);
+    collection.spawnStartAll(true);
     await sleep(500);
     expect(called).toBe(6); // we're not being notified
     expect(counter).toBe(12); // all loaded again
@@ -280,13 +280,13 @@ describe('CollectionStore with errors', () => {
   );
 
   let called = 0;
-  let ready = false;
+  let started = false;
   let error = '';
 
   collection.subscribe(() => {
     called++;
-    if (collection.ready) {
-      ready = true;
+    if (collection.started) {
+      started = true;
     }
     if (collection.error) {
       error = collection.error;
@@ -294,8 +294,8 @@ describe('CollectionStore with errors', () => {
   }, 'test');
 
   it('should capture any error', async () => {
-    collection.spawnLoadAll();
-    while (!ready && !error) {
+    collection.spawnStartAll();
+    while (!started && !error) {
       await sleep(50);
     }
     expect(called).toBe(2);
@@ -337,18 +337,18 @@ describe('CollectionStore with no summary', () => {
   );
 
   let called = 0;
-  let ready = false;
+  let started = false;
 
   collection.subscribe(() => {
     called++;
-    if (collection.ready) {
-      ready = true;
+    if (collection.started) {
+      started = true;
     }
   }, 'test');
 
   it('should load data but not call summary', async () => {
-    collection.spawnLoadAll();
-    while (!ready) {
+    collection.spawnStartAll();
+    while (!started) {
       await sleep(50);
     }
     expect(called).toBe(2);

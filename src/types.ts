@@ -8,5 +8,5 @@ export interface ISimpleStore {
   error: string;
   started: boolean;
   subscribe: (observer: IObserver, name: string) => () => void;
-  start: (itemId: string, forceReload?: boolean, callSummary?: boolean) => Promise<void>;
+  doStart: (itemId: string, forceReload?: boolean, callSummary?: boolean) => Promise<void>;
 }

@@ -54,30 +54,30 @@ class User extends SimpleStore<IState, ISummary> {
   const store = new User();
 
   let called = 0;
-  let ready = false;
+  let started = false;
 
   const unsubscribe = store.subscribe(() => {
     called++;
     if (store.started) {
-      ready = true;
+      started = true;
       console.log(store.state); // we may read state data
     } else {
-      console.log('...not ready yet...');
+      console.log('...not started yet...');
     }
   }, 'example01');
 
-  store.start('bender');
+  store.doStart('bender');
   await sleep(500);
 
   console.log(`called = ${called}`);
-  console.log(`ready = ${ready}`);
+  console.log(`started = ${started}`);
   console.log(`accidents = ${store.summary?.accidents}`);
 
   unsubscribe();
 })();
 
 // OUTPUT:
-//   ...not ready yet...
+//   ...not started yet...
 //   { name: 'Bender', email: 'bender.rodriguez@futurama.co' }
 //   called = 2
-//   ready = true
+//   started = true

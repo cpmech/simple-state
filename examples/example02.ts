@@ -83,37 +83,37 @@ const newZeroSummary = (): ISummary => ({ accidents: 0 });
   );
 
   let called = 0;
-  let ready = false;
+  let started = false;
 
   const unsubscribe = collection.subscribe(() => {
     called++;
-    if (collection.ready) {
-      ready = true;
+    if (collection.started) {
+      started = true;
       console.log('RELIABLE users:');
       console.log(collection.stores.RELIABLE.state); // we may read state data
       console.log('UNRELIABLE users:');
       console.log(collection.stores.UNRELIABLE.state); // we may read state data
     } else {
-      console.log('...not ready yet...');
+      console.log('...not started yet...');
     }
   }, 'example02');
 
-  collection.spawnLoadAll();
+  collection.spawnStartAll();
   await sleep(500);
 
   console.log(`called = ${called}`);
-  console.log(`ready = ${ready}`);
+  console.log(`started = ${started}`);
   console.log(`accidents = ${collection.summary?.accidents}`);
 
   unsubscribe();
 })();
 
 // OUTPUT:
-//   ...not ready yet...
+//   ...not started yet...
 //   RELIABLE users:
 //   { name: 'Leela', email: 'turanga.leela@futurama.co' }
 //   UNRELIABLE users:
 //   { name: 'Bender', email: 'bender.rodriguez@futurama.co' }
 //   called = 2
-//   ready = true
+//   started = true
 //   accidents = 11

@@ -51,6 +51,9 @@ Then the frontend can use the stores like so:
 const store = new User();
 
 const unsubscribe = store.subscribe(() => {
+  if (store.started) {
+    console.log('...not started yet...');
+  }
   if (store.ready) {
     console.log('...not ready yet...');
   }
@@ -67,11 +70,11 @@ Or, using the "collection":
 
 ```typescript
 const unsubscribe = collection.subscribe(() => {
-  if (collection.ready) {
+  if (collection.started) {
     console.log(collection.stores.ADMIN.state); // we may read state data
     console.log(collection.stores.CUSTOMER.state); // we may read state data
   } else {
-    console.log('...not ready yet...');
+    console.log('...not started yet...');
   }
 }, 'the-name-of-this-another-observer-goes-here');
 

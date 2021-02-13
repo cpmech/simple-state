@@ -4,7 +4,7 @@ import { IObserver, IObservers, ISimpleStore } from './types';
 import { NOTIFY_DELAY } from './constants';
 
 interface IStoreStatus {
-  ready: boolean;
+  started: boolean;
   unsubscribe: () => void;
 }
 
@@ -15,7 +15,7 @@ export class CollectionStore<
 > {
   // flags
   /* readyonly */ error = '';
-  /* readyonly */ ready = false;
+  /* readyonly */ started = false;
 
   // stores and summary
   /* readyonly */ stores: { [id in GROUP]: STORE };
@@ -37,16 +37,16 @@ export class CollectionStore<
     });
 
   // prepare for changes
-  private begin = () => {
+  private notifyBeginStart = () => {
     this.error = '';
-    this.ready = false;
+    this.started = false;
     this.onChange();
   };
 
   // notify observers
-  private end = (withError = '') => {
+  private notifyEndStart = (withError = '') => {
     this.error = withError;
-    this.ready = !this.error;
+    this.started = !this.error;
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
@@ -76,14 +76,14 @@ export class CollectionStore<
       (acc, group) => ({
         ...acc,
         [group]: {
-          ready: false,
+          started: false,
           unsubscribe: this.stores[group].subscribe(async () => {
-            const { error, started: ready } = this.stores[group];
+            const { error, started } = this.stores[group];
             if (error) {
-              this.end(error);
+              this.notifyEndStart(error);
             }
-            if (ready) {
-              await this.onReady(group);
+            if (started) {
+              await this.onStarted(group);
             }
           }, `CollectionStore${Date.now()}`),
         },
@@ -105,43 +105,43 @@ export class CollectionStore<
     return this.stores[group];
   }
 
-  // will send the group as itemId to each store load function
-  spawnLoadAll = (forceReload?: boolean, callSummary?: boolean) => {
-    if (this.ready && !forceReload) {
+  // will send the group as itemId to each store doStart function
+  spawnStartAll = (forceReload?: boolean, callSummary?: boolean) => {
+    if (this.started && !forceReload) {
       return;
     }
-    this.begin(); // matched by this.end within onAllReady
+    this.notifyBeginStart(); // matched by this.end within onAllStarted
     for (const group of this.groups) {
-      this.status[group].ready = false; // must clear data here in case we're reloading
+      this.status[group].started = false; // must clear data here in case we're reloading
     }
     for (const group of this.groups) {
-      this.stores[group].start(group, forceReload, callSummary);
+      this.stores[group].doStart(group, forceReload, callSummary);
     }
   };
 
-  private onAllReady = () => {
+  private onAllStarted = () => {
     if (this.summary && this.reducer && this.newZeroSummary) {
       this.summary = this.newZeroSummary();
       for (const group of this.groups) {
         this.summary = this.reducer(this.summary, this.stores[group]);
       }
     }
-    this.end();
+    this.notifyEndStart();
   };
 
-  private onReady = async (group: GROUP) => {
+  private onStarted = async (group: GROUP) => {
     const release = await this.mutex.acquire();
-    this.status[group].ready = true;
-    // check if everyone else is ready too
-    const allReady = this.groups.reduce((acc, g) => {
-      if (!this.status[g].ready) {
+    this.status[group].started = true;
+    // check if everyone else started too
+    const allStarted = this.groups.reduce((acc, g) => {
+      if (!this.status[g].started) {
         return false;
       }
       return acc;
     }, true);
-    if (!this.ready && allReady) {
-      // call allReady just once
-      this.onAllReady();
+    if (!this.started && allStarted) {
+      // call just once
+      this.onAllStarted();
     }
     release();
   };
