@@ -3,7 +3,7 @@ import { Iany } from '@cpmech/basic';
 import { IObserver, IObservers, ISimpleStore } from './types';
 import { NOTIFY_DELAY } from './constants';
 
-interface IStoreStatus {
+interface IStoreStartedStatus {
   started: boolean;
   unsubscribe: () => void;
 }
@@ -22,7 +22,7 @@ export class CollectionStore<
   /* readyonly */ summary: SUMMARY | null;
 
   // status of all stores and mutex to access the status map
-  private status: { [id in GROUP]: IStoreStatus };
+  private status: { [id in GROUP]: IStoreStartedStatus };
   private mutex = new Mutex();
 
   // observers holds everyone who is interested in state updates
@@ -88,7 +88,7 @@ export class CollectionStore<
           }, `CollectionStore${Date.now()}`),
         },
       }),
-      {} as { [group in GROUP]: IStoreStatus },
+      {} as { [group in GROUP]: IStoreStartedStatus },
     );
   }
 
