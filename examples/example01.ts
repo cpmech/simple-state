@@ -21,7 +21,7 @@ const newZeroState = (): IState => ({
 });
 
 // 4. define a callback function to load state data
-const onLoad = async (itemId: string): Promise<IState> => {
+const onStart = async (itemId: string): Promise<IState> => {
   if (itemId === 'leela') {
     return {
       name: 'Leela',
@@ -42,7 +42,7 @@ const onSummary = (state: IState): ISummary => ({
 // 6. extend the SimpleStore class; it may have any additional members
 class User extends SimpleStore<IState, ISummary> {
   constructor() {
-    super(newZeroState, onLoad, onSummary);
+    super(newZeroState, onStart, onSummary);
   }
   get username(): string {
     return this.state.name;
@@ -66,7 +66,7 @@ class User extends SimpleStore<IState, ISummary> {
     }
   }, 'example01');
 
-  store.load('bender');
+  store.start('bender');
   await sleep(500);
 
   console.log(`called = ${called}`);

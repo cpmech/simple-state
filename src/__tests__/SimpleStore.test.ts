@@ -27,7 +27,7 @@ interface ISummary {
 describe('SimpleStore', () => {
   let counter = 0;
 
-  const onLoad = async (itemId: string): Promise<IState> => {
+  const onStart = async (itemId: string): Promise<IState> => {
     counter++;
     if (itemId === 'leela') {
       return {
@@ -47,7 +47,7 @@ describe('SimpleStore', () => {
 
   class User extends SimpleStore<IState, ISummary> {
     constructor() {
-      super(newZeroState, onLoad, onSummary);
+      super(newZeroState, onStart, onSummary);
     }
     get username(): string {
       return this.state.name;
@@ -77,7 +77,7 @@ describe('SimpleStore', () => {
   it('should load and notify the observer', async () => {
     expect(called).toBe(0);
     expect(ready).toBe(false);
-    store.load('bender');
+    store.start('bender');
     while (!ready) {
       await sleep(50);
     }
@@ -93,7 +93,7 @@ describe('SimpleStore', () => {
   it('should not load again', async () => {
     expect(called).toBe(2);
     expect(ready).toBe(true);
-    store.load('leela', false);
+    store.start('leela', false);
     ready = false;
     let i = 0;
     while (!ready && i < 5) {
@@ -113,7 +113,7 @@ describe('SimpleStore', () => {
   it('should load again and notify the observer', async () => {
     expect(called).toBe(2);
     expect(ready).toBe(false);
-    store.load('leela', true);
+    store.start('leela', true);
     while (!ready) {
       await sleep(50);
     }
@@ -155,7 +155,7 @@ describe('SimpleStore', () => {
     expect(called).toBe(8);
     store.subscribe((null as unknown) as IObserver, 'temporary'); // <<< force null (unusual)
     ready = false;
-    store.load('bender', true);
+    store.start('bender', true);
     while (!ready) {
       await sleep(50);
     }
@@ -166,7 +166,7 @@ describe('SimpleStore', () => {
   it('should unsubscribe observer', async () => {
     unsubscribe();
     expect(called).toBe(10);
-    await store.load('leela', true);
+    await store.start('leela', true);
     expect(called).toBe(10);
   });
 });
@@ -176,7 +176,7 @@ describe('SimpleStore', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore with errors', () => {
-  const onLoad = async (itemId: string): Promise<IState> => {
+  const onStart = async (itemId: string): Promise<IState> => {
     throw new Error('STOP');
   };
 
@@ -186,7 +186,7 @@ describe('SimpleStore with errors', () => {
 
   class User extends SimpleStore<IState, ISummary> {
     constructor() {
-      super(newZeroState, onLoad, onSummary);
+      super(newZeroState, onStart, onSummary);
     }
   }
 
@@ -206,10 +206,10 @@ describe('SimpleStore with errors', () => {
     }
   }, 'test');
 
-  it('should handle error onLoad', async () => {
+  it('should handle error onStart', async () => {
     expect(called).toBe(0);
     expect(ready).toBe(false);
-    store.load('bender');
+    store.start('bender');
     while (error === '') {
       await sleep(50);
     }
@@ -234,7 +234,7 @@ describe('SimpleStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('SimpleStore without summary', () => {
-  const onLoad = async (itemId: string): Promise<IState> => {
+  const onStart = async (itemId: string): Promise<IState> => {
     return {
       name: 'Bender',
       email: 'bender.rodriguez@futurama.co',
@@ -243,7 +243,7 @@ describe('SimpleStore without summary', () => {
 
   class User extends SimpleStore<IState, null> {
     constructor() {
-      super(newZeroState, onLoad);
+      super(newZeroState, onStart);
     }
   }
 
@@ -260,7 +260,7 @@ describe('SimpleStore without summary', () => {
   }, 'test');
 
   it('should load without calling summary', async () => {
-    store.load('bender');
+    store.start('bender');
     while (!ready) {
       await sleep(50);
     }

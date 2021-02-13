@@ -11,7 +11,7 @@ The `SimpleStore` class needs to be extended before use and this can be done in 
 1. define the state interface (e.g. `IState`)
 2. define the summary interface (to perform post-calculations based on loaded data; e.g. `ISummary`)
 3. define a function to generate a blank state (e.g. `newZeroState`)
-4. define a callback function to load state data (e.g. `onLoad`)
+4. define a callback function to load state data (e.g. `onStart`)
 5. define a callback function to make a summary out of state data (e.g. `onSummary`)
 6. extend the SimpleStore class; it may have any additional members (e.g. `User`)
 
@@ -26,7 +26,7 @@ This is how we extend the `SimpleStore`:
 ```typescript
 class User extends SimpleStore<IState, ISummary> {
   constructor() {
-    super(newZeroState, onLoad, onSummary);
+    super(newZeroState, onStart, onSummary);
   }
   get username(): string {
     return this.state.name;

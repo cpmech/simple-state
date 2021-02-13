@@ -32,7 +32,7 @@ const newZeroSummary = (): ISummary => ({ android: 0, ios: 0, web: 0 });
 
 let counter = 0;
 
-const onLoad = async (group: string): Promise<IState> => {
+const onStart = async (group: string): Promise<IState> => {
   await sleep(50 + Math.random() * 100);
   counter++;
   if (group === 'A') {
@@ -86,7 +86,7 @@ const onSummary = (state: IState): ISummary => {
 
 class Customers extends SimpleStore<IState, ISummary> {
   constructor() {
-    super(newZeroState, onLoad, onSummary);
+    super(newZeroState, onStart, onSummary);
   }
 }
 
@@ -255,7 +255,7 @@ describe('CollectionStore wrong definition', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('CollectionStore with errors', () => {
-  const onLoadWithError = async (itemId: string): Promise<IState> => {
+  const onStartWithError = async (itemId: string): Promise<IState> => {
     if (itemId === 'B') {
       throw new Error('B-group failed');
     }
@@ -270,7 +270,7 @@ describe('CollectionStore with errors', () => {
 
   class CustomersWithError extends SimpleStore<IState, null> {
     constructor() {
-      super(newZeroState, onLoadWithError);
+      super(newZeroState, onStartWithError);
     }
   }
 
@@ -319,7 +319,7 @@ describe('CollectionStore with errors', () => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe('CollectionStore with no summary', () => {
-  const onLoadWithError = async (_: string): Promise<IState> => {
+  const onStartWithError = async (_: string): Promise<IState> => {
     return {
       customers: [{ name: 'Bender', email: 'bender.rodriguez@futurama.co' }],
     };
@@ -327,7 +327,7 @@ describe('CollectionStore with no summary', () => {
 
   class CustomersWithError extends SimpleStore<IState, null> {
     constructor() {
-      super(newZeroState, onLoadWithError);
+      super(newZeroState, onStartWithError);
     }
   }
 
