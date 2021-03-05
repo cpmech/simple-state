@@ -1,6 +1,19 @@
 #!/bin/sh
 
-staged_files=$(git diff --cached --diff-filter=d --name-only | grep  -E '\.(js|jsx|ts|tsx)$')
+# run tests
+CI=true npm run test
+test_exit_code=$?
+
+# check tests exit code
+if [ $test_exit_code -ne 0 ]; then
+    echo "❌ tests failed"
+    exit 1
+else
+    echo "✅ tests"
+fi
+
+# get staged files
+staged_files=$(git diff --cached --diff-filter=d --name-only | grep  -E '\.(ts|tsx)$')
 
 # skip if there are no js or ts files
 if [ -z "$staged_files" ]; then
@@ -8,7 +21,7 @@ if [ -z "$staged_files" ]; then
 fi
 
 # run type-check
-yarn run --silent tsc
+npm run --silent tsc
 tsc_exit_code=$?
 
 # check the tsc exit code
@@ -20,7 +33,7 @@ else
 fi
 
 # run linter on staged files => save exit code for later
-yarn run --silent eslint $staged_files --quiet --fix
+npm run --silent eslint -- $staged_files --quiet --fix
 linter_exit_code=$?
 
 # add files auto-fixed by the linter
