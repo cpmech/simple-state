@@ -10,7 +10,8 @@
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "diagnostics": true
   },
   "exclude": [
     "**/__stories__",

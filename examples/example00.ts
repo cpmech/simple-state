@@ -3,6 +3,10 @@ import { SimpleStore } from '../src';
 // auxiliary function
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// define possible actions
+type Action = 'loadData' | 'clearState';
+const actionNames: Action[] = ['loadData', 'clearState'];
+
 // define the state interface
 interface IState {
   data: {
@@ -16,15 +20,15 @@ const newZeroState = (): IState => ({
 });
 
 // extend the SimpleStore class; it may have any additional members
-class Store extends SimpleStore<IState, null> {
+class Store extends SimpleStore<Action, IState, null> {
   constructor() {
-    super(newZeroState);
+    super(actionNames, newZeroState);
   }
 
   load = async () => {
-    this.notifyBeginStart();
+    this.initAction('loadData');
     this.state.data.email = 'my.email@gmail.com';
-    this.notifyEndStart();
+    this.endAction('loadData');
   };
 }
 
@@ -37,7 +41,7 @@ class Store extends SimpleStore<IState, null> {
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.started) {
+    if (store.actions['loadData'].completed) {
       ready = true;
     } else {
       console.log('...not ready yet...');
@@ -53,9 +57,3 @@ class Store extends SimpleStore<IState, null> {
 
   unsubscribe();
 })();
-
-// OUTPUT:
-//   ...not ready yet...
-//   called = 2
-//   ready = true
-//   state = { data: { email: 'my.email@gmail.com' } }

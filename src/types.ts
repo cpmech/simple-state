@@ -1,13 +1,14 @@
+export interface IAction {
+  name: string;
+  error: string;
+  inProgress: boolean;
+  completed: boolean;
+}
+
+export type IActions<T extends string> = { [name in T]: IAction };
+
 export type IObserver = () => void;
 
 export interface IObservers {
   [name: string]: IObserver;
-}
-
-export interface ISimpleStore {
-  error: string;
-  started: boolean;
-  ready: boolean;
-  subscribe: (observer: IObserver, name: string) => () => void;
-  doStart: (itemId: string, forceReload?: boolean, callSummary?: boolean) => Promise<void>;
 }
