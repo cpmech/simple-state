@@ -46,8 +46,6 @@ npm run build
 # publish
 echo
 echo "🚀 Publishing"
-cp package.json dist/package.json
-cd dist
 npm publish --access=public
 
 # git tag
