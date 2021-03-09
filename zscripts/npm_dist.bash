@@ -51,7 +51,6 @@ npm publish --access=public
 # git tag
 echo
 echo "🏷️ Tagging"
-cd ..
 git add package.json
 git tag v`jq -r '.version' package.json`
 git commit -m 'Publish' && git push && git push --tags
