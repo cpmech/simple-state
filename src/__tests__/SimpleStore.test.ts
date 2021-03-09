@@ -1,10 +1,11 @@
-import { sleep, setElog } from '@cpmech/basic';
+import { sleep } from '@cpmech/basic';
 import { SimpleStore } from '../SimpleStore';
-import { IObserver } from '../types';
-
-setElog(false);
 
 jest.setTimeout(1000);
+
+type Action = 'loadData' | 'clearState';
+
+const actionNames: Action[] = ['loadData', 'clearState'];
 
 interface IState {
   name: string;
@@ -21,20 +22,18 @@ interface ISummary {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe('SimpleStore', () => {
-  class User extends SimpleStore<IState, null> {
+describe('SimpleStore [basic]', () => {
+  class User extends SimpleStore<Action, IState, null> {
     constructor() {
-      super(newZeroState);
+      super(actionNames, newZeroState);
     }
 
-    load = async () => {
-      this.notifyBeginReady();
+    loadData = async () => {
+      this.initAction('loadData');
       this.state.name = 'My Name';
       this.state.email = 'my.email@gmail.com';
-      this.notifyEndReady();
+      this.endAction('loadData');
     };
   }
 
@@ -45,13 +44,13 @@ describe('SimpleStore', () => {
 
   store.subscribe(() => {
     called++;
-    if (store.ready) {
+    if (store.actions.loadData.completed) {
       ready = true;
     }
   }, 'test');
 
-  it('should start', async () => {
-    store.load();
+  it('should load data', async () => {
+    store.loadData();
     while (!ready) {
       await sleep(50);
     }
@@ -62,86 +61,81 @@ describe('SimpleStore', () => {
 });
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe('SimpleStore (onStart)', () => {
+describe('SimpleStore [advanced]', () => {
   let counter = 0;
 
-  const onStart = async (itemId: string): Promise<IState> => {
-    counter++;
-    if (itemId === 'leela') {
-      return {
-        name: 'Leela',
-        email: 'turanga.leela@futurama.co',
-      };
-    }
-    return {
-      name: 'Bender',
-      email: 'bender.rodriguez@futurama.co',
-    };
-  };
-
-  const onSummary = (state: IState): ISummary => ({
-    accidents: state.name === 'Bender' ? 10 : 1,
-  });
-
-  class User extends SimpleStore<IState, ISummary> {
+  class User extends SimpleStore<Action, IState, ISummary> {
     constructor() {
-      super(newZeroState, onStart, onSummary);
+      super(actionNames, newZeroState, async (state: IState) => ({
+        accidents: state.name === 'Bender' ? 10 : 1,
+      }));
     }
-    get username(): string {
-      return this.state.name;
-    }
-    someAction() {
-      this.notifyBeginReady();
-      this.state.email = 'invalid';
-      this.notifyEndReady();
-    }
+
+    loadData = async (itemId: string) => {
+      await this.updateState('loadData', async () => {
+        counter++;
+        if (itemId === 'leela') {
+          this.state = {
+            name: 'Leela',
+            email: 'turanga.leela@futurama.co',
+          };
+        }
+        this.state = {
+          name: 'Bender',
+          email: 'bender.rodriguez@futurama.co',
+        };
+      });
+    };
   }
 
   const store = new User();
 
   let called = 0;
-  let started = false;
   let ready = false;
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.started) {
-      started = true;
-    }
-    if (store.ready) {
+    if (store.actions['loadData'].completed) {
       ready = true;
     }
   }, 'test');
 
   it('should initialize the store', async () => {
-    expect(store.error).toBe('');
-    expect(store.started).toBe(false);
-    expect(store.ready).toBe(false);
+    expect(store.actions).toStrictEqual({
+      loadData: { name: 'loadData', error: '', inProgress: false, completed: true },
+      clearState: { name: 'clearState', error: '', inProgress: false, completed: true },
+    });
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
-    expect(store.username).toBe('');
   });
 
-  it('should load and notify the observer', async () => {
+  it('should load data and notify the observer', async () => {
     expect(called).toBe(0);
-    expect(started).toBe(false);
     expect(ready).toBe(false);
-    store.doStart('bender');
-    while (!started) {
+    store.loadData('bender');
+    expect(store.actions.loadData).toStrictEqual({
+      name: 'loadData',
+      error: '',
+      inProgress: true,
+      completed: false,
+    });
+    while (!ready) {
       await sleep(50);
     }
-    expect(called).toBe(2); // started=false, then true
+    expect(called).toBe(2); // read=false, then true
     expect(counter).toBe(1);
-    expect(store.error).toBe('');
-    expect(store.started).toBe(true);
+    expect(store.actions.loadData).toStrictEqual({
+      name: 'loadData',
+      error: '',
+      inProgress: false,
+      completed: true,
+    });
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 10 });
-    expect(store.username).toBe('Bender');
   });
 
+  /*
   it('should not load again', async () => {
     expect(called).toBe(2);
     expect(started).toBe(true);
@@ -236,8 +230,10 @@ describe('SimpleStore (onStart)', () => {
     await store.doStart('leela', true);
     expect(called).toBe(12);
   });
+  */
 });
 
+/*
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -342,3 +338,5 @@ describe('SimpleStore (onStart and no summary)', () => {
     expect(called).toBe(2);
   });
 });
+
+*/
