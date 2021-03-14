@@ -1,5 +1,5 @@
 import { Iany } from '@cpmech/basic';
-import { IActions, IObserver, IObservers } from './types';
+import { IActions, IObserver, IObservers, newZeroAction } from './types';
 import { NOTIFY_DELAY } from './constants';
 
 export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY extends Iany | null> {
@@ -32,7 +32,7 @@ export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY exte
   protected initAction = (name: ACTION) => {
     this.actions[name].error = '';
     this.actions[name].inProgress = true;
-    this.actions[name].completed = false;
+    this.actions[name].totalCount++;
     this.onChange();
   };
 
@@ -46,7 +46,9 @@ export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY exte
   protected endAction = (name: ACTION, error = '') => {
     this.actions[name].error = error;
     this.actions[name].inProgress = false;
-    this.actions[name].completed = true;
+    if (!error) {
+      this.actions[name].successCount++;
+    }
     setTimeout(() => this.onChange(), NOTIFY_DELAY);
   };
 
@@ -65,7 +67,7 @@ export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY exte
     this.actions = actionNames.reduce(
       (acc, curr) => ({
         ...acc,
-        [curr]: { name: curr, error: '', inProgress: false, completed: true },
+        [curr]: newZeroAction(curr),
       }),
       {} as IActions<ACTION>,
     );
@@ -155,6 +157,16 @@ export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY exte
   resetAction = (name: ACTION) => {
     this.actions[name].error = '';
     this.actions[name].inProgress = false;
-    this.actions[name].completed = true;
+    this.actions[name].successCount = 0;
+    this.actions[name].totalCount = 0;
+  };
+
+  getFirstError = (): string => {
+    for (const name of this.actionNames) {
+      if (this.actions[name].error) {
+        return this.actions[name].error;
+      }
+    }
+    return '';
   };
 }

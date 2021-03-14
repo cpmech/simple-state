@@ -607,10 +607,10 @@
   "resolved" "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.7.tgz"
   "version" "7.0.7"
 
-"@types/node@*", "@types/node@^14.14.32":
-  "integrity" "sha512-/Ctrftx/zp4m8JOujM5ZhwzlWLx22nbQJiVqz8/zE15gOeEW+uly3FSX4fGFpcfEvFzXcMCJwq9lGVWgyARXhg=="
-  "resolved" "https://registry.npmjs.org/@types/node/-/node-14.14.32.tgz"
-  "version" "14.14.32"
+"@types/node@*", "@types/node@^14.14.34":
+  "integrity" "sha512-dBPaxocOK6UVyvhbnpFIj2W+S+1cBTkHQbFQfeeJhoKFbzYcVUGHvddeWPSucKATb3F0+pgDq0i6ghEaZjsugA=="
+  "resolved" "https://registry.npmjs.org/@types/node/-/node-14.14.34.tgz"
+  "version" "14.14.34"
 
 "@types/normalize-package-data@^2.4.0":
   "integrity" "sha512-f5j5b/Gf71L+dbqxIpQ4Z2WlmI/mPJ0fOkGGmFgtb6sAu97EPczzbS3/tJKxmcYDj55OX6ssqwDAWOHIYDRDGA=="
@@ -1485,10 +1485,10 @@
   "resolved" "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-2.0.0.tgz"
   "version" "2.0.0"
 
-"eslint@*", "eslint@^5.0.0 || ^6.0.0 || ^7.0.0", "eslint@^7.21.0", "eslint@>=5.0.0", "eslint@>=7.0.0":
-  "integrity" "sha512-W2aJbXpMNofUp0ztQaF40fveSsJBjlSCSWpy//gzfTvwC+USs/nceBrKmlJOiM8r1bLwP2EuYkCqArn/6QTIgg=="
-  "resolved" "https://registry.npmjs.org/eslint/-/eslint-7.21.0.tgz"
-  "version" "7.21.0"
+"eslint@*", "eslint@^5.0.0 || ^6.0.0 || ^7.0.0", "eslint@^7.22.0", "eslint@>=5.0.0", "eslint@>=7.0.0":
+  "integrity" "sha512-3VawOtjSJUQiiqac8MQc+w457iGLfuNGLFn8JmF051tTKbh5/x/0vlcEj8OgDCaw7Ysa2Jn8paGshV7x2abKXg=="
+  "resolved" "https://registry.npmjs.org/eslint/-/eslint-7.22.0.tgz"
+  "version" "7.22.0"
   dependencies:
     "@babel/code-frame" "7.12.11"
     "@eslint/eslintrc" "^0.4.0"
@@ -1507,7 +1507,7 @@
     "file-entry-cache" "^6.0.1"
     "functional-red-black-tree" "^1.0.1"
     "glob-parent" "^5.0.0"
-    "globals" "^12.1.0"
+    "globals" "^13.6.0"
     "ignore" "^4.0.6"
     "import-fresh" "^3.0.0"
     "imurmurhash" "^0.1.4"
@@ -1515,7 +1515,7 @@
     "js-yaml" "^3.13.1"
     "json-stable-stringify-without-jsonify" "^1.0.1"
     "levn" "^0.4.1"
-    "lodash" "^4.17.20"
+    "lodash" "^4.17.21"
     "minimatch" "^3.0.4"
     "natural-compare" "^1.4.0"
     "optionator" "^0.9.1"
@@ -1914,6 +1914,13 @@
   "version" "12.4.0"
   dependencies:
     "type-fest" "^0.8.1"
+
+"globals@^13.6.0":
+  "integrity" "sha512-YFKCX0SiPg7l5oKYCJ2zZGxcXprVXHcSnVuvzrT3oSENQonVLqM5pf9fN5dLGZGyCjhw8TN8Btwe/jKnZ0pjvQ=="
+  "resolved" "https://registry.npmjs.org/globals/-/globals-13.6.0.tgz"
+  "version" "13.6.0"
+  dependencies:
+    "type-fest" "^0.20.2"
 
 "globby@^11.0.1":
   "integrity" "sha512-2ZThXDvvV8fYFRVIxnrMQBipZQDr7MxKAmQK1vujaj9/7eF0efG7BPUKJ7jP7G5SLF37xKDXvO4S/KKLj/Z0og=="
@@ -2879,10 +2886,10 @@
   "resolved" "https://registry.npmjs.org/lodash.sortby/-/lodash.sortby-4.7.0.tgz"
   "version" "4.7.0"
 
-"lodash@^4.17.15", "lodash@^4.17.19", "lodash@^4.17.20", "lodash@4.x":
-  "integrity" "sha512-PlhdFcillOINfeV7Ni6oF1TAEayyZBoZ8bcshTHqOYJYlrqzRK5hagpagky5o4HfCzzd1TRkXPMFq6cKk9rGmA=="
-  "resolved" "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz"
-  "version" "4.17.20"
+"lodash@^4.17.15", "lodash@^4.17.19", "lodash@^4.17.20", "lodash@^4.17.21", "lodash@4.x":
+  "integrity" "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="
+  "resolved" "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"
+  "version" "4.17.21"
 
 "lru-cache@^6.0.0":
   "integrity" "sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA=="
@@ -3557,10 +3564,10 @@
   dependencies:
     "estree-walker" "^0.6.1"
 
-"rollup@^1.20.0||^2.0.0", "rollup@^2.0.0", "rollup@^2.40.0", "rollup@>=1.11.0", "rollup@>=1.26.3":
-  "integrity" "sha512-WiOGAPbXoHu+TOz6hyYUxIksOwsY/21TRWoO593jgYt8mvYafYqQl+axaA8y1z2HFazNUUrsMSjahV2A6/2R9A=="
-  "resolved" "https://registry.npmjs.org/rollup/-/rollup-2.40.0.tgz"
-  "version" "2.40.0"
+"rollup@^1.20.0||^2.0.0", "rollup@^2.0.0", "rollup@^2.41.2", "rollup@>=1.11.0", "rollup@>=1.26.3":
+  "integrity" "sha512-6u8fJJXJx6fmvKrAC9DHYZgONvSkz8S9b/VFBjoQ6dkKdHyPpPbpqiNl2Bao9XBzDHpq672X6sGZ9G1ZBqAHMg=="
+  "resolved" "https://registry.npmjs.org/rollup/-/rollup-2.41.2.tgz"
+  "version" "2.41.2"
   optionalDependencies:
     "fsevents" "~2.3.1"
 
@@ -4145,6 +4152,11 @@
   "integrity" "sha512-OdjXJxnCN1AvyLSzeKIgXTXxV+99ZuXl3Hpo9XpJAv9MBcHrrJOQ5kV7ypXOuQie+AmWG25hLbiKdwYTifzcfQ=="
   "resolved" "https://registry.npmjs.org/type-fest/-/type-fest-0.11.0.tgz"
   "version" "0.11.0"
+
+"type-fest@^0.20.2":
+  "integrity" "sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ=="
+  "resolved" "https://registry.npmjs.org/type-fest/-/type-fest-0.20.2.tgz"
+  "version" "0.20.2"
 
 "type-fest@^0.6.0":
   "integrity" "sha512-q+MB8nYR1KDLrgr4G5yemftpMC7/QLqVndBmEEdqzmNj5dcFOO4Oo8qlwZE3ULT3+Zim1F8Kq4cBnikNhlCMlg=="

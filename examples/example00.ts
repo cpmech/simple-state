@@ -25,10 +25,10 @@ class Store extends SimpleStore<Action, IState, null> {
     super(actionNames, newZeroState);
   }
 
-  load = async () => {
-    this.initAction('loadData');
-    this.state.data.email = 'my.email@gmail.com';
-    this.endAction('loadData');
+  loadData = async () => {
+    this.updateState('loadData', async () => {
+      this.state.data.email = 'my.email@gmail.com';
+    });
   };
 }
 
@@ -41,14 +41,16 @@ class Store extends SimpleStore<Action, IState, null> {
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.actions['loadData'].completed) {
+    if (store.actions.loadData.successCount > 0) {
       ready = true;
+      console.log('...ready...');
+      console.log('state =', store.state); // we may read state data
     } else {
       console.log('...not ready yet...');
     }
   }, 'example00');
 
-  store.load();
+  store.loadData();
   await sleep(500);
 
   console.log(`called = ${called}`);
@@ -57,3 +59,10 @@ class Store extends SimpleStore<Action, IState, null> {
 
   unsubscribe();
 })();
+
+// ...not ready yet...
+// ...ready...
+// state = { data: { email: 'my.email@gmail.com' } }
+// called = 2
+// ready = true
+// state = { data: { email: 'my.email@gmail.com' } }

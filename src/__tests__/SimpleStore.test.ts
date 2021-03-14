@@ -44,7 +44,7 @@ describe('SimpleStore [basic]', () => {
 
   store.subscribe(() => {
     called++;
-    if (store.actions.loadData.completed) {
+    if (store.actions.loadData.successCount > 0) {
       ready = true;
     }
   }, 'test');
@@ -96,15 +96,27 @@ describe('SimpleStore [advanced]', () => {
 
   const unsubscribe = store.subscribe(() => {
     called++;
-    if (store.actions['loadData'].completed) {
+    if (store.actions.loadData.successCount > 0) {
       ready = true;
     }
   }, 'test');
 
   it('should initialize the store', async () => {
     expect(store.actions).toStrictEqual({
-      loadData: { name: 'loadData', error: '', inProgress: false, completed: true },
-      clearState: { name: 'clearState', error: '', inProgress: false, completed: true },
+      loadData: {
+        name: 'loadData',
+        error: '',
+        inProgress: false,
+        successCount: 0,
+        totalCount: 0,
+      },
+      clearState: {
+        name: 'clearState',
+        error: '',
+        inProgress: false,
+        successCount: 0,
+        totalCount: 0,
+      },
     });
     expect(store.state).toStrictEqual({ name: '', email: '' });
     expect(store.summary).toBeNull();
@@ -118,7 +130,8 @@ describe('SimpleStore [advanced]', () => {
       name: 'loadData',
       error: '',
       inProgress: true,
-      completed: false,
+      successCount: 0,
+      totalCount: 1,
     });
     while (!ready) {
       await sleep(50);
@@ -129,7 +142,8 @@ describe('SimpleStore [advanced]', () => {
       name: 'loadData',
       error: '',
       inProgress: false,
-      completed: true,
+      successCount: 1,
+      totalCount: 1,
     });
     expect(store.state).toStrictEqual({ name: 'Bender', email: 'bender.rodriguez@futurama.co' });
     expect(store.summary).toStrictEqual({ accidents: 10 });
