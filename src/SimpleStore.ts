@@ -4,9 +4,9 @@ import { NOTIFY_DELAY } from './constants';
 
 export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY extends Iany | null> {
   // state
-  /* readyonly */ actions: IActions<ACTION>;
-  /* readyonly */ state: STATE;
-  /* readyonly */ summary: SUMMARY | null = null;
+  /* readonly */ actions: IActions<ACTION>;
+  /* readonly */ state: STATE;
+  /* readonly */ summary: SUMMARY | null = null;
 
   /**
    * observers holds everyone who is interested in state updates
@@ -110,8 +110,8 @@ export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY exte
     } catch (error) {
       const err: string =
         messageError ||
-        error?.response?.data?.error ||
-        error.message ||
+        (error as any)?.response?.data?.error ||
+        `${error}` ||
         'Cannot load data from server';
       this.endAction(actionName, err);
       return;
@@ -132,7 +132,7 @@ export class SimpleStore<ACTION extends string, STATE extends Iany, SUMMARY exte
     try {
       this.summary = await this.onSummary(this.state);
     } catch (error) {
-      this.endAction(actionName, messageError || error.message);
+      this.endAction(actionName, messageError || `${error}`);
       return;
     }
     this.endAction(actionName);
